@@ -1,27 +1,68 @@
-// src/pages/SignIn.jsx
+// frontend/src/pages/SignIn.jsx
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // ✅ import useNavigate
+import { useNavigate } from "react-router-dom";
+import { login } from "../api";
 import "../assets/styles/styles.css";
 import logo from "../assets/college-1.jpg";
 
 const SignIn = () => {
-  const [role, setRole] = useState("");
-  const navigate = useNavigate(); // ✅ initialize navigate
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    role: ""
+  });
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSignIn = (e) => {
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSignIn = async (e) => {
     e.preventDefault();
-    if (!role) return alert("Select a role");
+    if (!formData.role) return alert("Select a role");
 
-    // ✅ navigate to route instead of window.location.href
-    switch (role) {
-  case "student": navigate("/student/dashboard"); break;
-  case "parent": navigate("/parent/dashboard"); break;
-  case "advisor": navigate("/advisor/dashboard"); break;
-  case "warden": navigate("/warden/dashboard"); break;
-  case "admin": navigate("/admin/dashboard"); break;
-  default: alert("Select a role");
-}
+    setLoading(true);
+    try {
+      const credentials = {
+        email: formData.email,
+        password: formData.password
+      };
 
+      const response = await login(credentials);
+      
+      // Store token and user data
+      localStorage.setItem("token", response.token);
+      localStorage.setItem("user", JSON.stringify(response.user));
+      
+      // Navigate to appropriate dashboard
+      switch (formData.role) {
+        case "student": 
+          navigate("/student/dashboard"); 
+          break;
+        case "parent": 
+          navigate("/parent/dashboard"); 
+          break;
+        case "advisor": 
+          navigate("/advisor/dashboard"); 
+          break;
+        case "warden": 
+          navigate("/warden/dashboard"); 
+          break;
+        case "admin": 
+          navigate("/admin/dashboard"); 
+          break;
+        default: 
+          alert("Select a valid role");
+      }
+    } catch (error) {
+      alert(error.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -42,18 +83,31 @@ const SignIn = () => {
         <form onSubmit={handleSignIn}>
           <div style={{ marginTop: "8px" }}>
             <label className="kv">Email</label>
-            <input type="email" required />
+            <input 
+              type="email" 
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required 
+            />
           </div>
           <div style={{ marginTop: "8px" }}>
             <label className="kv">Password</label>
-            <input type="password" required />
+            <input 
+              type="password" 
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required 
+            />
           </div>
           <div style={{ marginTop: "8px" }}>
             <label className="kv">Role</label>
             <select
               required
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
             >
               <option value="">Select role</option>
               <option value="student">Student</option>
@@ -65,8 +119,12 @@ const SignIn = () => {
           </div>
 
           <div style={{ marginTop: "14px" }} className="row">
-            <button className="btn btn-primary" type="submit">
-              Sign in
+            <button 
+              className="btn btn-primary" 
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? "Signing in..." : "Sign in"}
             </button>
             <a className="btn btn-outline" href="/signup">
               Create account

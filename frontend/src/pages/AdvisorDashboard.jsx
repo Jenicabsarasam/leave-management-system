@@ -1,12 +1,40 @@
 // src/pages/AdvisorDashboard.jsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import "../assets/styles/styles.css";
 import logo from "../assets/college-1.jpg";
+import { advisorReview, getLeaves } from "../api";
 
 const AdvisorDashboard = () => {
-  const decide = (action, student) => {
-    if(action==='accept') alert('Accepted leave for ' + student);
-    else alert('Rejected leave for ' + student);
+  const [leaves, setLeaves] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const token = localStorage.getItem("token");
+
+  const fetchLeaves = async () => {
+    try {
+      setLoading(true);
+      const data = await getLeaves(token); // You might filter server-side for advisor role
+      const pendingLeaves = (data.leaves || []).filter(l => l.status === "pending"); 
+      setLeaves(pendingLeaves);
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeaves();
+  }, []);
+
+  const handleDecision = async (leaveId, action) => {
+    try {
+      const res = await advisorReview(token, leaveId, action);
+      alert(res.msg || `Leave ${action}`);
+      fetchLeaves();
+    } catch (err) {
+      console.error(err);
+      alert("Error processing request");
+    }
   };
 
   return (
@@ -25,44 +53,42 @@ const AdvisorDashboard = () => {
       <main className="card">
         <h3 style={{ marginTop: 0 }}>Pending requests (awaiting your review)</h3>
 
-        <table className="table">
-          <thead>
-            <tr><th>Student</th><th>Dates</th><th>Type</th><th>Parent status</th><th>Action</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>R. Sharma</td>
-              <td>2025-09-10 → 2025-09-12</td>
-              <td>Emergency</td>
-              <td>Approved</td>
-              <td>
-                <button className="btn btn-primary" onClick={() => decide('accept','R. Sharma')}>Accept</button>
-                <button className="btn btn-outline" onClick={() => decide('reject','R. Sharma')}>Reject</button>
-              </td>
-            </tr>
-            <tr>
-              <td>A. Kumar</td>
-              <td>2025-09-20 → 2025-09-22</td>
-              <td>Normal</td>
-              <td>Pending</td>
-              <td>
-                <button className="btn btn-primary" onClick={() => decide('accept','A. Kumar')}>Accept</button>
-                <button className="btn btn-outline" onClick={() => decide('reject','A. Kumar')}>Reject</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div style={{ marginTop: "14px" }} className="card">
-          <h4 style={{ marginTop: 0 }}>Notifications</h4>
-          <div className="kv">Emergency request: R. Sharma — check now.</div>
-        </div>
+        {loading ? (
+          <p>Loading pending leaves...</p>
+        ) : leaves.length === 0 ? (
+          <p>No pending requests.</p>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Dates</th>
+                <th>Type</th>
+                <th>Parent status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leaves.map((leave) => (
+                <tr key={leave.id}>
+                  <td>{leave.studentName || leave.studentId}</td>
+                  <td>{leave.startDate} → {leave.endDate}</td>
+                  <td>{leave.type.charAt(0).toUpperCase() + leave.type.slice(1)}</td>
+                  <td>{leave.parentApproved ? "Approved" : "Pending"}</td>
+                  <td>
+                    <button className="btn btn-primary" onClick={() => handleDecision(leave.id, "accept")}>Accept</button>
+                    <button className="btn btn-outline" onClick={() => handleDecision(leave.id, "reject")}>Reject</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
 
         <div style={{ marginTop: "14px" }} className="card">
           <h4 style={{ marginTop: 0 }}>History & monthly summary</h4>
-          <div className="kv">Total leaves this month: <strong>23</strong></div>
-          <div className="kv">Normal: 18 | Emergency: 5</div>
-          <a className="btn btn-outline" href="/advisor_history" style={{ marginTop: "8px", display: "inline-block" }}>View full history</a>
+          <div className="kv">Total leaves this month: <strong>{leaves.length}</strong></div>
+          <div className="kv">Normal: {leaves.filter(l => l.type === "normal").length} | Emergency: {leaves.filter(l => l.type === "emergency").length}</div>
         </div>
       </main>
     </div>
