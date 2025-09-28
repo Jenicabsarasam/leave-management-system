@@ -1,4 +1,14 @@
+// frontend/src/api.js
 const API_URL = "http://localhost:5000";
+
+// Helper function to handle API responses
+const handleResponse = async (response) => {
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.msg || 'Something went wrong');
+  }
+  return data;
+};
 
 export const signup = async (userData) => {
   const res = await fetch(`${API_URL}/auth/signup`, {
@@ -6,7 +16,7 @@ export const signup = async (userData) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(userData),
   });
-  return res.json();
+  return handleResponse(res);
 };
 
 export const login = async (credentials) => {
@@ -15,7 +25,7 @@ export const login = async (credentials) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
   });
-  return res.json();
+  return handleResponse(res);
 };
 
 export const applyLeave = async (token, leaveData) => {
@@ -27,15 +37,18 @@ export const applyLeave = async (token, leaveData) => {
     },
     body: JSON.stringify(leaveData),
   });
-  return res.json();
+  return handleResponse(res);
 };
 
 export const getLeaves = async (token) => {
   const res = await fetch(`${API_URL}/leave/my`, {
     method: "GET",
-    headers: { "Authorization": `Bearer ${token}` },
+    headers: { 
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}` 
+    },
   });
-  return res.json();
+  return handleResponse(res);
 };
 
 export const parentApprove = async (token, leaveId, action) => {
@@ -47,7 +60,7 @@ export const parentApprove = async (token, leaveId, action) => {
     },
     body: JSON.stringify({ action }),
   });
-  return res.json();
+  return handleResponse(res);
 };
 
 export const advisorReview = async (token, leaveId, action) => {
@@ -59,7 +72,7 @@ export const advisorReview = async (token, leaveId, action) => {
     },
     body: JSON.stringify({ action }),
   });
-  return res.json();
+  return handleResponse(res);
 };
 
 export const wardenApprove = async (token, leaveId, action) => {
@@ -71,15 +84,16 @@ export const wardenApprove = async (token, leaveId, action) => {
     },
     body: JSON.stringify({ action }),
   });
-  return res.json();
+  return handleResponse(res);
 };
 
 export const confirmArrival = async (token, leaveId) => {
   const res = await fetch(`${API_URL}/leave/${leaveId}/arrival`, {
     method: "POST",
     headers: {
+      "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`,
     },
   });
-  return res.json();
+  return handleResponse(res);
 };
