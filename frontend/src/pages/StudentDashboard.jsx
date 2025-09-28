@@ -4,6 +4,7 @@ import "../assets/styles/styles.css";
 import logo from "../assets/college-1.jpg";
 import { applyLeave, getLeaves } from "../api";
 
+
 const StudentDashboard = () => {
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
