@@ -1,4 +1,4 @@
-// frontend/src/pages/SignUp.jsx
+// src/pages/SignUp.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signup } from "../api";
@@ -11,7 +11,8 @@ const SignUp = () => {
     email: "",
     password: "",
     role: "",
-    phone: ""
+    phone: "",
+    studentRollNo: ""
   });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -32,7 +33,9 @@ const SignUp = () => {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        role: formData.role
+        role: formData.role,
+        phone: formData.phone,
+        studentRollNo: formData.studentRollNo
       };
 
       const response = await signup(userData);
@@ -127,6 +130,39 @@ const SignUp = () => {
             </div>
           </div>
 
+          {/* Student Roll Number - Only show for parents */}
+          {formData.role === 'parent' && (
+            <div style={{ marginTop: "12px" }}>
+              <label className="kv">Your Child's Roll Number</label>
+              <input 
+                type="text" 
+                name="studentRollNo"
+                value={formData.studentRollNo}
+                onChange={handleChange}
+                required={formData.role === 'parent'}
+                placeholder="Enter student roll number" 
+              />
+              <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "4px" }}>
+                This links you to your child's leave requests
+              </div>
+            </div>
+          )}
+
+          {/* Student ID - Only show for students */}
+          {formData.role === 'student' && (
+            <div style={{ marginTop: "12px" }}>
+              <label className="kv">Roll Number</label>
+              <input 
+                type="text" 
+                name="studentRollNo"
+                value={formData.studentRollNo}
+                onChange={handleChange}
+                required={formData.role === 'student'}
+                placeholder="Enter your roll number" 
+              />
+            </div>
+          )}
+
           <div style={{ marginTop: "16px" }} className="row">
             <button 
               className="btn btn-primary" 
@@ -146,4 +182,4 @@ const SignUp = () => {
   );
 };
 
-export default SignUp;
+export default SignUp; // Make sure this line is present and correct

@@ -143,3 +143,55 @@ textarea{min-height:110px; resize:vertical}
   .grid-2{grid-template-columns:1fr}
   .brand h1{display:none}
 }
+/* Add to your styles.css */
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.status-badge.pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.parent_approved {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+.status-badge.advisor_approved {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+.status-badge.warden_approved {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-badge.rejected {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.status-badge.completed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.leave-item {
+  border-left: 4px solid #007bff;
+}
+
+.leave-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.leave-details p {
+  margin: 4px 0;
+}
