@@ -12,10 +12,33 @@ const SignUp = () => {
     password: "",
     role: "",
     phone: "",
-    studentRollNo: ""
+    studentRollNo: "",
+    branch: "",
+    division: "",
+    hostel: ""
   });
+  
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Predefined options
+  const branches = [
+    { id: "CSE", name: "Computer Science Engineering" },
+    { id: "AI", name: "Artificial Intelligence" },
+    { id: "EEE", name: "Electrical and Electronics Engineering" },
+    { id: "MECH", name: "Mechanical Engineering" },
+    { id: "CIVIL", name: "Civil Engineering" }
+  ];
+
+  const divisions = ["A", "B", "C", "D", "E"];
+
+  const hostels = [
+    { id: "NILA", name: "Nila" },
+    { id: "KAVERI", name: "Kaveri" },
+    { id: "GANGA", name: "Ganga" },
+    { id: "YAMUNA", name: "Yamuna" },
+    { id: "SARASWATI", name: "Saraswati" }
+  ];
 
   const handleChange = (e) => {
     setFormData({
@@ -35,7 +58,10 @@ const SignUp = () => {
         password: formData.password,
         role: formData.role,
         phone: formData.phone,
-        studentRollNo: formData.studentRollNo
+        studentRollNo: formData.studentRollNo,
+        branch: formData.branch,
+        division: formData.division,
+        hostel: formData.hostel
       };
 
       const response = await signup(userData);
@@ -130,7 +156,73 @@ const SignUp = () => {
             </div>
           </div>
 
-          {/* Student Roll Number - Only show for parents */}
+          {/* Student-specific fields */}
+          {formData.role === 'student' && (
+            <>
+              <div style={{ marginTop: "12px" }}>
+                <label className="kv">Roll Number</label>
+                <input 
+                  type="text" 
+                  name="studentRollNo"
+                  value={formData.studentRollNo}
+                  onChange={handleChange}
+                  required
+                  placeholder="Enter your roll number" 
+                />
+              </div>
+              
+              <div style={{ marginTop: "12px" }} className="form-row">
+                <div style={{ flex: 1 }}>
+                  <label className="kv">Branch</label>
+                  <select 
+                    name="branch"
+                    value={formData.branch}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select Branch</option>
+                    {branches.map(branch => (
+                      <option key={branch.id} value={branch.id}>
+                        {branch.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ width: "120px" }}>
+                  <label className="kv">Division</label>
+                  <select 
+                    name="division"
+                    value={formData.division}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select Division</option>
+                    {divisions.map(div => (
+                      <option key={div} value={div}>Division {div}</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label className="kv">Hostel</label>
+                  <select 
+                    name="hostel"
+                    value={formData.hostel}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select Hostel</option>
+                    {hostels.map(hostel => (
+                      <option key={hostel.id} value={hostel.id}>
+                        {hostel.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Parent-specific fields */}
           {formData.role === 'parent' && (
             <div style={{ marginTop: "12px" }}>
               <label className="kv">Your Child's Roll Number</label>
@@ -139,7 +231,7 @@ const SignUp = () => {
                 name="studentRollNo"
                 value={formData.studentRollNo}
                 onChange={handleChange}
-                required={formData.role === 'parent'}
+                required
                 placeholder="Enter student roll number" 
               />
               <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "4px" }}>
@@ -148,18 +240,62 @@ const SignUp = () => {
             </div>
           )}
 
-          {/* Student ID - Only show for students */}
-          {formData.role === 'student' && (
+          {/* Advisor-specific fields */}
+          {formData.role === 'advisor' && (
+            <div style={{ marginTop: "12px" }} className="form-row">
+              <div style={{ flex: 1 }}>
+                <label className="kv">Assigned Branch</label>
+                <select 
+                  name="branch"
+                  value={formData.branch}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Select Branch</option>
+                  {branches.map(branch => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ width: "120px" }}>
+                <label className="kv">Division</label>
+                <select 
+                  name="division"
+                  value={formData.division}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Select Division</option>
+                  {divisions.map(div => (
+                    <option key={div} value={div}>Division {div}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Warden-specific fields - ONLY HOSTEL */}
+          {formData.role === 'warden' && (
             <div style={{ marginTop: "12px" }}>
-              <label className="kv">Roll Number</label>
-              <input 
-                type="text" 
-                name="studentRollNo"
-                value={formData.studentRollNo}
+              <label className="kv">Assigned Hostel</label>
+              <select 
+                name="hostel"
+                value={formData.hostel}
                 onChange={handleChange}
-                required={formData.role === 'student'}
-                placeholder="Enter your roll number" 
-              />
+                required
+              >
+                <option value="">Select Hostel</option>
+                {hostels.map(hostel => (
+                  <option key={hostel.id} value={hostel.id}>
+                    {hostel.name}
+                  </option>
+                ))}
+              </select>
+              <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "4px" }}>
+                You will only see leave requests from students in this hostel
+              </div>
             </div>
           )}
 
@@ -182,4 +318,4 @@ const SignUp = () => {
   );
 };
 
-export default SignUp; // Make sure this line is present and correct
+export default SignUp;
