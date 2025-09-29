@@ -24,44 +24,103 @@ export const applyLeave = async (req, res) => {
 // ---------------------- Get leaves for logged-in user ----------------------
 export const getLeaves = async (req, res) => {
   try {
-    // In getLeaves function - update the SELECT query
-let query = `
-  SELECT l.*, 
-         s.id as student_id, s.name as student_name, s.roll_number as student_rollno,
-         p.id as parent_id, p.name as parent_name,
-         a.id as advisor_id, a.name as advisor_name,
-         w.id as warden_id, w.name as warden_name
-  FROM leaves l
-  JOIN users s ON l.student_id = s.id
-  LEFT JOIN users p ON l.parent_id = p.id
-  LEFT JOIN users a ON l.advisor_id = a.id
-  LEFT JOIN users w ON l.warden_id = w.id
-`;
+    let query = `
+      SELECT l.*, 
+             s.id as student_id, s.name as student_name, s.roll_number as student_rollno,
+             s.division as student_division,
+             b.name as branch_name,
+             h.name as hostel_name,
+             p.id as parent_id, p.name as parent_name,
+             a.id as advisor_id, a.name as advisor_name,
+             w.id as warden_id, w.name as warden_name
+      FROM leaves l
+      JOIN users s ON l.student_id = s.id
+      LEFT JOIN branches b ON s.branch_id = b.id
+      LEFT JOIN hostels h ON s.hostel_id = h.id
+      LEFT JOIN users p ON l.parent_id = p.id
+      LEFT JOIN users a ON l.advisor_id = a.id
+      LEFT JOIN users w ON l.warden_id = w.id
+    `;
 
     const { role, id } = req.user;
     let params = [];
+    let whereConditions = [];
 
-    if (role === "student") {
-      query += ` WHERE l.student_id = $1`;
+        if (role === "student") {
+      whereConditions.push(`l.student_id = $1`);
       params = [id];
+
     } else if (role === "parent") {
-      // Get leaves only for parent's children
-      query += ` 
-        WHERE l.student_id IN (
-          SELECT ps.student_id 
-          FROM parent_student ps 
-          WHERE ps.parent_id = $1
-        )
-      `;
+      whereConditions.push(`l.student_id IN (
+        SELECT ps.student_id 
+        FROM parent_student ps 
+        WHERE ps.parent_id = $1
+      )`);
       params = [id];
+
     } else if (role === "advisor") {
-      // Advisor sees all leaves that need their approval
-      query += ` WHERE l.status IN ('parent_approved', 'pending')`;
+      console.log('👨‍🏫 Advisor fetching leaves for user ID:', id);
+      
+      // Get advisor's assigned branch and division
+      const advisorRes = await db.query(
+        `SELECT u.branch_id, u.division, b.name as branch_name 
+         FROM users u 
+         LEFT JOIN branches b ON u.branch_id = b.id 
+         WHERE u.id = $1`,
+        [id]
+      );
+      
+      console.log('📊 Advisor details:', advisorRes.rows[0]);
+      
+      if (advisorRes.rows.length > 0) {
+        const advisor = advisorRes.rows[0];
+        if (advisor.branch_id && advisor.division) {
+          whereConditions.push(`s.branch_id = $1 AND s.division = $2`);
+          params = [advisor.branch_id, advisor.division];
+          console.log(`🔍 Filtering for branch: ${advisor.branch_name}, division: ${advisor.division}`);
+        } else {
+          console.log('⚠️ Advisor missing branch or division assignment');
+        }
+      }
+      
+      // Show leaves that need advisor approval
+      whereConditions.push(`l.status IN ('parent_approved', 'pending')`);
+      console.log('📋 Showing leaves with status: parent_approved or pending');
+
     } else if (role === "warden") {
-      // Warden sees all leaves that need their approval
-      query += ` WHERE l.status IN ('advisor_approved', 'parent_approved')`;
+      console.log('🏠 Warden fetching leaves for user ID:', id);
+      
+      // Get warden's assigned hostel
+      const wardenRes = await db.query(
+        `SELECT u.hostel_id, h.name as hostel_name 
+         FROM users u 
+         LEFT JOIN hostels h ON u.hostel_id = h.id 
+         WHERE u.id = $1`,
+        [id]
+      );
+      
+      console.log('📊 Warden details:', wardenRes.rows[0]);
+      
+      if (wardenRes.rows.length > 0) {
+        const warden = wardenRes.rows[0];
+        if (warden.hostel_id) {
+          whereConditions.push(`s.hostel_id = $1`);
+          params = [warden.hostel_id];
+          console.log(`🔍 Filtering for hostel: ${warden.hostel_name}`);
+        } else {
+          console.log('⚠️ Warden missing hostel assignment');
+        }
+      }
+      
+      // Show leaves that need warden approval
+      whereConditions.push(`l.status IN ('advisor_approved', 'parent_approved')`);
+      console.log('📋 Showing leaves with status: advisor_approved or parent_approved');
     }
-    // Admin can see all leaves (no WHERE clause)
+
+    // Add WHERE clause if conditions exist
+    if (whereConditions.length > 0) {
+      query += ` WHERE ` + whereConditions.join(' AND ');
+    }
 
     query += ` ORDER BY l.created_at DESC`;
 
@@ -72,6 +131,7 @@ let query = `
     res.status(500).json({ msg: "Server error" });
   }
 };
+
 
 // ---------------------- Parent approve/reject ----------------------
 export const parentApproveLeave = async (req, res) => {
