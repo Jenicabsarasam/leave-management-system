@@ -6,32 +6,64 @@ import {
   parentApproveLeave, 
   advisorReviewLeave, 
   wardenApproveLeave, 
+  wardenEmergencyApprove,
   confirmArrival,
-  getQRCode  // Add this import
+  getQRCode,
+  uploadProof,
+  verifyProof,
+  getStudentsSummary
 } from "../controllers/leaveController.js";
 import { verifyToken, permit } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Student applies for leave
+// Import multer for file uploads
+import multer from "multer";
+import path from "path";
+import { fileURLToPath } from 'url';
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, '../uploads/proofs/'))
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'proof-' + uniqueSuffix + '-' + file.originalname);
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'), false);
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
+
+// Existing routes
 router.post("/apply", verifyToken, permit("student"), applyLeave);
-
-// Get all leaves for the logged-in user
 router.get("/my", verifyToken, getLeaves);
-
-// Parent approves or rejects leave
 router.post("/:id/approve", verifyToken, permit("parent"), parentApproveLeave);
-
-// Advisor review route
 router.post("/:id/review", verifyToken, permit("advisor"), advisorReviewLeave);
-
-// Warden approval route
 router.post("/:id/warden", verifyToken, permit("warden"), wardenApproveLeave);
-
-// Parent confirms arrival
+router.post("/:id/emergency-approve", verifyToken, permit("warden"), wardenEmergencyApprove);
 router.post("/:id/arrival", verifyToken, permit("parent"), confirmArrival);
+router.get("/:id/qrcode", verifyToken, getQRCode);
 
-// Get QR code for leave
-router.get("/:id/qrcode", verifyToken, getQRCode);  // Add this route
+// New routes
+router.post("/:id/upload-proof", verifyToken, permit("parent"), upload.single('proof'), uploadProof);
+router.post("/:id/verify-proof", verifyToken, permit("advisor"), verifyProof);
+router.get("/advisor/students-summary", verifyToken, permit("advisor"), getStudentsSummary);
 
 export default router;
