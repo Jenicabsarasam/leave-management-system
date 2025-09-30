@@ -104,10 +104,13 @@ const StudentDashboard = () => {
               <label className="kv">Leave type</label>
               <select name="leaveType">
                 <option value="normal">Normal</option>
-                <option value="emergency">Emergency (fast track)</option>
+                <option value="emergency">🚨 Emergency (Direct warden approval)</option>
               </select>
+              <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "4px" }}>
+                Emergency leaves bypass parent and advisor approval for urgent situations.
+                You may be asked to provide proof later.
+              </div>
             </div>
-
             <div style={{ marginTop: "12px" }} className="row">
               <button className="btn btn-primary" type="submit">Submit leave request</button>
             </div>

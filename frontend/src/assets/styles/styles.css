@@ -195,3 +195,53 @@ textarea{min-height:110px; resize:vertical}
 .leave-details p {
   margin: 4px 0;
 }
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  padding: 12px 24px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.tab-btn.active {
+  border-bottom-color: #007bff;
+  color: #007bff;
+  font-weight: bold;
+}
+
+.tab-btn:hover {
+  background-color: #f8f9fa;
+}
+
+/* Student Cards */
+.student-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.student-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Modal */
+.modal {
+  backdrop-filter: blur(5px);
+}
+
+/* Summary Cards */
+.summary-cards .card {
+  transition: transform 0.2s;
+}
+
+.summary-cards .card:hover {
+  transform: translateY(-2px);
+}

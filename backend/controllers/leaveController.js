@@ -9,12 +9,24 @@ export const applyLeave = async (req, res) => {
     return res.status(400).json({ msg: "All fields required" });
 
   try {
+    let status = 'pending';
+    
+    // For emergency leaves, skip to warden approval directly
+    if (type === 'emergency') {
+      status = 'emergency_pending'; // New status for emergency leaves
+    }
+
     const result = await db.query(
       `INSERT INTO leaves(student_id, reason, start_date, end_date, type, status)
-       VALUES($1,$2,$3,$4,$5,'pending') RETURNING *`,
-      [req.user.id, reason, startDate, endDate, type || 'normal']
+       VALUES($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [req.user.id, reason, startDate, endDate, type || 'normal', status]
     );
-    res.status(201).json({ msg: "Leave applied", leave: result.rows[0] });
+    
+    const message = type === 'emergency' 
+      ? "Emergency leave applied! It will be processed directly by warden." 
+      : "Leave applied";
+      
+    res.status(201).json({ msg: message, leave: result.rows[0] });
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
@@ -46,10 +58,9 @@ export const getLeaves = async (req, res) => {
     let params = [];
     let whereConditions = [];
 
-        if (role === "student") {
+    if (role === "student") {
       whereConditions.push(`l.student_id = $1`);
       params = [id];
-
     } else if (role === "parent") {
       whereConditions.push(`l.student_id IN (
         SELECT ps.student_id 
@@ -57,10 +68,7 @@ export const getLeaves = async (req, res) => {
         WHERE ps.parent_id = $1
       )`);
       params = [id];
-
     } else if (role === "advisor") {
-      console.log('👨‍🏫 Advisor fetching leaves for user ID:', id);
-      
       // Get advisor's assigned branch and division
       const advisorRes = await db.query(
         `SELECT u.branch_id, u.division, b.name as branch_name 
@@ -70,26 +78,17 @@ export const getLeaves = async (req, res) => {
         [id]
       );
       
-      console.log('📊 Advisor details:', advisorRes.rows[0]);
-      
       if (advisorRes.rows.length > 0) {
         const advisor = advisorRes.rows[0];
         if (advisor.branch_id && advisor.division) {
           whereConditions.push(`s.branch_id = $1 AND s.division = $2`);
           params = [advisor.branch_id, advisor.division];
-          console.log(`🔍 Filtering for branch: ${advisor.branch_name}, division: ${advisor.division}`);
-        } else {
-          console.log('⚠️ Advisor missing branch or division assignment');
         }
       }
       
-      // Show leaves that need advisor approval
-      whereConditions.push(`l.status IN ('parent_approved', 'pending')`);
-      console.log('📋 Showing leaves with status: parent_approved or pending');
-
+      // Show leaves that need advisor approval AND emergency leaves for monitoring
+      whereConditions.push(`(l.status IN ('parent_approved', 'pending') OR l.type = 'emergency')`);
     } else if (role === "warden") {
-      console.log('🏠 Warden fetching leaves for user ID:', id);
-      
       // Get warden's assigned hostel
       const wardenRes = await db.query(
         `SELECT u.hostel_id, h.name as hostel_name 
@@ -99,22 +98,16 @@ export const getLeaves = async (req, res) => {
         [id]
       );
       
-      console.log('📊 Warden details:', wardenRes.rows[0]);
-      
       if (wardenRes.rows.length > 0) {
         const warden = wardenRes.rows[0];
         if (warden.hostel_id) {
           whereConditions.push(`s.hostel_id = $1`);
           params = [warden.hostel_id];
-          console.log(`🔍 Filtering for hostel: ${warden.hostel_name}`);
-        } else {
-          console.log('⚠️ Warden missing hostel assignment');
         }
       }
       
-      // Show leaves that need warden approval
-      whereConditions.push(`l.status IN ('advisor_approved', 'parent_approved')`);
-      console.log('📋 Showing leaves with status: advisor_approved or parent_approved');
+      // Show leaves that need warden approval AND emergency leaves
+      whereConditions.push(`(l.status IN ('advisor_approved', 'parent_approved', 'emergency_pending') OR l.type = 'emergency')`);
     }
 
     // Add WHERE clause if conditions exist
@@ -131,7 +124,6 @@ export const getLeaves = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
-
 
 // ---------------------- Parent approve/reject ----------------------
 export const parentApproveLeave = async (req, res) => {
@@ -159,6 +151,11 @@ export const parentApproveLeave = async (req, res) => {
     if (checkResult.rows.length === 0) 
       return res.status(404).json({ msg: "Leave not found or unauthorized" });
 
+    // Don't process emergency leaves through parent flow
+    if (checkResult.rows[0].type === 'emergency') {
+      return res.status(400).json({ msg: "Emergency leaves are processed directly by warden" });
+    }
+
     if (checkResult.rows[0].status !== "pending")
       return res.status(400).json({ msg: "Leave already processed" });
 
@@ -174,124 +171,6 @@ export const parentApproveLeave = async (req, res) => {
     });
   } catch (err) {
     console.error('Error in parentApproveLeave:', err);
-    res.status(500).json({ msg: "Server error" });
-  }
-};
-
-// ---------------------- Advisor review ----------------------
-export const advisorReviewLeave = async (req, res) => {
-  const leaveId = parseInt(req.params.id);
-  const { action } = req.body;
-
-  if (!["approve", "reject"].includes(action))
-    return res.status(400).json({ msg: 'Action must be "approve" or "reject"' });
-
-  try {
-    // Check if leave exists and status is correct
-    const check = await db.query(
-      `SELECT * FROM leaves WHERE id=$1`, 
-      [leaveId]
-    );
-    
-    if (check.rows.length === 0) 
-      return res.status(404).json({ msg: "Leave not found" });
-    
-    const leave = check.rows[0];
-    
-    if (leave.status !== "parent_approved")
-      return res.status(400).json({ 
-        msg: `Leave must be approved by parent first. Current status: ${leave.status}` 
-      });
-
-    const status = action === "approve" ? "advisor_approved" : "rejected";
-    const result = await db.query(
-      `UPDATE leaves SET status=$1, advisor_id=$2 WHERE id=$3 RETURNING *`,
-      [status, req.user.id, leaveId]
-    );
-
-    res.json({ 
-      msg: `Leave ${action === "approve" ? "approved by advisor" : "rejected by advisor"}`, 
-      leave: result.rows[0] 
-    });
-  } catch (err) {
-    console.error('Error in advisorReviewLeave:', err);
-    res.status(500).json({ msg: "Server error" });
-  }
-};
-
-// ---------------------- Warden approve ----------------------
-export const wardenApproveLeave = async (req, res) => {
-  const leaveId = parseInt(req.params.id);
-  const { action } = req.body;
-
-  if (!["approve", "reject", "verify"].includes(action))
-    return res.status(400).json({ msg: 'Action must be "approve", "reject", or "verify"' });
-
-  try {
-    const check = await db.query(
-      `SELECT * FROM leaves WHERE id=$1`, 
-      [leaveId]
-    );
-    
-    if (check.rows.length === 0) 
-      return res.status(404).json({ msg: "Leave not found" });
-    
-    const leave = check.rows[0];
-    
-    if (leave.status !== "advisor_approved")
-      return res.status(400).json({ 
-        msg: `Leave must be approved by advisor first. Current status: ${leave.status}` 
-      });
-
-    let status, message;
-    
-    if (action === "approve") {
-      status = "warden_approved";
-      message = "approved by warden";
-    } else if (action === "reject") {
-      status = "rejected";
-      message = "rejected by warden";
-    } else {
-      status = "verified";
-      message = "verified by warden";
-    }
-
-    const updateResult = await db.query(
-      `UPDATE leaves SET status=$1, warden_id=$2 WHERE id=$3 RETURNING *`,
-      [status, req.user.id, leaveId]
-    );
-
-    const updatedLeave = updateResult.rows[0];
-
-    // Generate QR code for warden approved leaves
-    if (status === "warden_approved") {
-      try {
-        const qrData = JSON.stringify({
-          leaveId: updatedLeave.id,
-          studentId: updatedLeave.student_id,
-          studentName: updatedLeave.student_name,
-          startDate: updatedLeave.start_date,
-          endDate: updatedLeave.end_date,
-          status: "approved"
-        });
-        updatedLeave.qr_code = await QRCode.toDataURL(qrData);
-        
-        // Save QR code to database
-        await db.query(
-          `UPDATE leaves SET qr_code=$1 WHERE id=$2`,
-          [updatedLeave.qr_code, leaveId]
-        );
-      } catch (qrError) {
-        console.error('QR code generation error:', qrError);
-      }
-    }
-
-    res.json({ 
-      msg: `Leave ${message}`, 
-      leave: updatedLeave 
-    });
-  } catch (err) {
-    console.error('Error in wardenApproveLeave:', err);
     res.status(500).json({ msg: "Server error" });
   }
 };
@@ -339,6 +218,421 @@ export const confirmArrival = async (req, res) => {
     });
   } catch (err) {
     console.error('Error in confirmArrival:', err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+
+// ---------------------- Advisor review ----------------------
+export const advisorReviewLeave = async (req, res) => {
+  const leaveId = parseInt(req.params.id);
+  const { action } = req.body;
+
+  if (!["approve", "reject"].includes(action))
+    return res.status(400).json({ msg: 'Action must be "approve" or "reject"' });
+
+  try {
+    // Check if leave exists and status is correct
+    const check = await db.query(
+      `SELECT * FROM leaves WHERE id=$1`, 
+      [leaveId]
+    );
+    
+    if (check.rows.length === 0) 
+      return res.status(404).json({ msg: "Leave not found" });
+    
+    const leave = check.rows[0];
+    
+    // Don't process emergency leaves through normal advisor flow
+    if (leave.type === 'emergency') {
+      return res.status(400).json({ msg: "Emergency leaves are processed directly by warden" });
+    }
+    
+    if (leave.status !== "parent_approved")
+      return res.status(400).json({ 
+        msg: `Leave must be approved by parent first. Current status: ${leave.status}` 
+      });
+
+    const status = action === "approve" ? "advisor_approved" : "rejected";
+    const result = await db.query(
+      `UPDATE leaves SET status=$1, advisor_id=$2 WHERE id=$3 RETURNING *`,
+      [status, req.user.id, leaveId]
+    );
+
+    res.json({ 
+      msg: `Leave ${action === "approve" ? "approved by advisor" : "rejected by advisor"}`, 
+      leave: result.rows[0] 
+    });
+  } catch (err) {
+    console.error('Error in advisorReviewLeave:', err);
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+
+// ---------------------- Warden approve (normal leaves) ----------------------
+export const wardenApproveLeave = async (req, res) => {
+  const leaveId = parseInt(req.params.id);
+  const { action } = req.body;
+
+  console.log('🏠 Warden approval request:', { leaveId, action, user: req.user });
+
+  if (!["approve", "reject", "verify"].includes(action)) {
+    console.log('❌ Invalid action:', action);
+    return res.status(400).json({ msg: 'Action must be "approve", "reject", or "verify"' });
+  }
+
+  try {
+    const check = await db.query(
+      `SELECT * FROM leaves WHERE id=$1`, 
+      [leaveId]
+    );
+    
+    if (check.rows.length === 0) {
+      console.log('❌ Leave not found:', leaveId);
+      return res.status(404).json({ msg: "Leave not found" });
+    }
+    
+    const leave = check.rows[0];
+    console.log('📋 Leave details:', leave);
+    
+    // Check if it's an emergency leave
+    if (leave.type === 'emergency') {
+      console.log('❌ Emergency leave detected, redirecting to emergency approval');
+      return res.status(400).json({ msg: "Use emergency approval for emergency leaves" });
+    }
+    
+    if (leave.status !== "advisor_approved") {
+      console.log('❌ Invalid status for warden approval:', leave.status);
+      return res.status(400).json({ 
+        msg: `Leave must be approved by advisor first. Current status: ${leave.status}` 
+      });
+    }
+
+    let status, message;
+    
+    if (action === "approve") {
+      status = "warden_approved";
+      message = "approved by warden";
+    } else if (action === "reject") {
+      status = "rejected";
+      message = "rejected by warden";
+    } else {
+      status = "verified";
+      message = "verified by warden";
+    }
+
+    console.log('💾 Updating leave status to:', status);
+    const updateResult = await db.query(
+      `UPDATE leaves SET status=$1, warden_id=$2 WHERE id=$3 RETURNING *`,
+      [status, req.user.id, leaveId]
+    );
+
+    const updatedLeave = updateResult.rows[0];
+
+    // Generate QR code for approved leaves
+    if (status === "warden_approved") {
+      try {
+        console.log('🔗 Generating QR code for leave:', leaveId);
+        const qrData = JSON.stringify({
+          leaveId: updatedLeave.id,
+          studentId: updatedLeave.student_id,
+          studentName: updatedLeave.student_name,
+          startDate: updatedLeave.start_date,
+          endDate: updatedLeave.end_date,
+          status: "approved"
+        });
+        updatedLeave.qr_code = await QRCode.toDataURL(qrData);
+        
+        // Save QR code to database
+        await db.query(
+          `UPDATE leaves SET qr_code=$1 WHERE id=$2`,
+          [updatedLeave.qr_code, leaveId]
+        );
+        console.log('✅ QR code generated and saved');
+      } catch (qrError) {
+        console.error('❌ QR code generation error:', qrError);
+      }
+    }
+
+    console.log('✅ Warden approval successful');
+    res.json({ 
+      msg: `Leave ${message}`, 
+      leave: updatedLeave 
+    });
+  } catch (err) {
+    console.error('💥 Error in wardenApproveLeave:', err);
+    console.error('Error details:', err.message);
+    res.status(500).json({ 
+      msg: "Server error during warden approval",
+      error: err.message 
+    });
+  }
+};
+
+// ---------------------- Warden emergency approval ----------------------
+export const wardenEmergencyApprove = async (req, res) => {
+  const leaveId = parseInt(req.params.id);
+  const { action, comments, meetingDate } = req.body;
+
+  console.log('🚨 Warden emergency approval request:', { leaveId, action, comments, meetingDate, user: req.user });
+
+  if (!["approve", "reject", "schedule_meeting"].includes(action)) {
+    console.log('❌ Invalid emergency action:', action);
+    return res.status(400).json({ msg: 'Action must be "approve", "reject", or "schedule_meeting"' });
+  }
+
+  try {
+    const check = await db.query(
+      `SELECT * FROM leaves WHERE id=$1`, 
+      [leaveId]
+    );
+    
+    if (check.rows.length === 0) {
+      console.log('❌ Emergency leave not found:', leaveId);
+      return res.status(404).json({ msg: "Leave not found" });
+    }
+    
+    const leave = check.rows[0];
+    console.log('📋 Emergency leave details:', leave);
+    
+    // Check if it's an emergency leave
+    if (leave.type !== 'emergency') {
+      console.log('❌ Not an emergency leave:', leave.type);
+      return res.status(400).json({ msg: "This is not an emergency leave" });
+    }
+
+    let status, message;
+    let emergencyApprovedAt = null;
+    let meetingScheduled = false;
+    let meetingDateValue = null;
+    
+    if (action === "approve") {
+      status = "warden_approved";
+      message = "Emergency leave approved by warden";
+      emergencyApprovedAt = new Date().toISOString();
+      
+      // Generate QR code for approved emergency leaves
+      try {
+        console.log('🔗 Generating QR code for emergency leave:', leaveId);
+        const qrData = JSON.stringify({
+          leaveId: leave.id,
+          studentId: leave.student_id,
+          status: "emergency_approved"
+        });
+        const qr_code = await QRCode.toDataURL(qrData);
+        
+        await db.query(
+          `UPDATE leaves SET qr_code=$1 WHERE id=$2`,
+          [qr_code, leaveId]
+        );
+        console.log('✅ Emergency QR code generated and saved');
+      } catch (qrError) {
+        console.error('❌ Emergency QR code generation error:', qrError);
+      }
+    } else if (action === "reject") {
+      status = "rejected";
+      message = "Emergency leave rejected by warden";
+    } else {
+      status = "meeting_scheduled";
+      message = "Meeting scheduled with student";
+      meetingScheduled = true;
+      meetingDateValue = meetingDate;
+    }
+
+    console.log('💾 Updating emergency leave status to:', status);
+    
+    // Build the update query
+    const updateResult = await db.query(
+      `UPDATE leaves 
+       SET status=$1, warden_id=$2, warden_comments=$3, emergency_approved_at=$4, 
+           meeting_scheduled=$5, meeting_date=$6
+       WHERE id=$7 
+       RETURNING *`,
+      [status, req.user.id, comments || null, emergencyApprovedAt, meetingScheduled, meetingDateValue, leaveId]
+    );
+
+    console.log('✅ Emergency warden action successful');
+    res.json({ 
+      msg: message, 
+      leave: updateResult.rows[0] 
+    });
+  } catch (err) {
+    console.error('💥 Error in wardenEmergencyApprove:', err);
+    console.error('Error details:', err.message);
+    res.status(500).json({ 
+      msg: "Server error during emergency warden approval",
+      error: err.message 
+    });
+  }
+};
+
+// ---------------------- Upload Proof File ----------------------
+export const uploadProof = async (req, res) => {
+  const leaveId = parseInt(req.params.id);
+  
+  try {
+    // Check if leave exists and parent is authorized
+    const checkQuery = `
+      SELECT l.*
+      FROM leaves l
+      WHERE l.id = $1 AND l.student_id IN (
+        SELECT ps.student_id 
+        FROM parent_student ps 
+        WHERE ps.parent_id = $2
+      )
+    `;
+    
+    const check = await db.query(checkQuery, [leaveId, req.user.id]);
+    
+    if (check.rows.length === 0) 
+      return res.status(404).json({ msg: "Leave not found or unauthorized" });
+    
+    const leave = check.rows[0];
+    
+    // Only allow proof upload for emergency leaves that are completed
+    if (leave.type !== 'emergency' || leave.status !== 'completed') {
+      return res.status(400).json({ msg: "Proof can only be uploaded for completed emergency leaves" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ msg: "Proof file is required" });
+    }
+
+    // Save file path to database
+    const filePath = `/uploads/proofs/${req.file.filename}`;
+    
+    const updateResult = await db.query(
+      `UPDATE leaves SET proof_file_path=$1, proof_submitted=true WHERE id=$2 RETURNING *`,
+      [filePath, leaveId]
+    );
+
+    res.json({ 
+      msg: "Proof uploaded successfully", 
+      leave: updateResult.rows[0],
+      filePath: filePath
+    });
+  } catch (err) {
+    console.error('Error in uploadProof:', err);
+    res.status(500).json({ msg: "Server error during proof upload" });
+  }
+};
+
+// ---------------------- Verify Proof ----------------------
+export const verifyProof = async (req, res) => {
+  const leaveId = parseInt(req.params.id);
+  const { verified, comments } = req.body;
+
+  try {
+    // Check if leave exists and advisor is authorized
+    const check = await db.query(
+      `SELECT l.*, s.branch_id, s.division
+       FROM leaves l
+       JOIN users s ON l.student_id = s.id
+       WHERE l.id = $1`,
+      [leaveId]
+    );
+    
+    if (check.rows.length === 0) 
+      return res.status(404).json({ msg: "Leave not found" });
+    
+    const leave = check.rows[0];
+    
+    // Check if advisor is assigned to this student's branch and division
+    const advisorCheck = await db.query(
+      `SELECT id FROM users WHERE id=$1 AND branch_id=$2 AND division=$3`,
+      [req.user.id, leave.branch_id, leave.division]
+    );
+    
+    if (advisorCheck.rows.length === 0) 
+      return res.status(403).json({ msg: "Not authorized to verify this proof" });
+
+    if (!leave.proof_submitted) {
+      return res.status(400).json({ msg: "No proof submitted for this leave" });
+    }
+
+    const updateResult = await db.query(
+      `UPDATE leaves 
+       SET proof_verified=$1, proof_verified_by=$2, proof_verified_at=$3, warden_comments=COALESCE($4, warden_comments)
+       WHERE id=$5 
+       RETURNING *`,
+      [verified, req.user.id, new Date().toISOString(), comments, leaveId]
+    );
+
+    const message = verified ? "Proof verified successfully" : "Proof rejected";
+    res.json({ 
+      msg: message, 
+      leave: updateResult.rows[0] 
+    });
+  } catch (err) {
+    console.error('Error in verifyProof:', err);
+    res.status(500).json({ msg: "Server error during proof verification" });
+  }
+};
+
+// ---------------------- Get Students Summary for Advisor ----------------------
+export const getStudentsSummary = async (req, res) => {
+  try {
+    const { id } = req.user;
+
+    // Get advisor's assigned branch and division
+    const advisorRes = await db.query(
+      `SELECT branch_id, division FROM users WHERE id = $1`,
+      [id]
+    );
+    
+    if (advisorRes.rows.length === 0 || !advisorRes.rows[0].branch_id || !advisorRes.rows[0].division) {
+      return res.json({ students: [] });
+    }
+
+    const advisor = advisorRes.rows[0];
+
+    // Get all students under this advisor with their leave statistics
+    const studentsSummary = await db.query(
+      `SELECT 
+        s.id,
+        s.name,
+        s.roll_number,
+        s.phone,
+        s.email,
+        COUNT(l.id) as total_leaves,
+        COUNT(CASE WHEN l.status = 'completed' THEN 1 END) as completed_leaves,
+        COUNT(CASE WHEN l.type = 'emergency' THEN 1 END) as emergency_leaves,
+        COUNT(CASE WHEN l.proof_submitted = true THEN 1 END) as proofs_submitted,
+        COUNT(CASE WHEN l.proof_verified = true THEN 1 END) as proofs_verified,
+        MAX(l.created_at) as last_leave_date
+       FROM users s
+       LEFT JOIN leaves l ON s.id = l.student_id
+       WHERE s.role_id = (SELECT id FROM roles WHERE name = 'student')
+         AND s.branch_id = $1 
+         AND s.division = $2
+       GROUP BY s.id, s.name, s.roll_number, s.phone, s.email
+       ORDER BY s.roll_number`,
+      [advisor.branch_id, advisor.division]
+    );
+
+    // Get recent leaves for these students
+    const recentLeaves = await db.query(
+      `SELECT 
+        l.*,
+        s.name as student_name,
+        s.roll_number,
+        p.name as parent_name,
+        w.name as warden_name
+       FROM leaves l
+       JOIN users s ON l.student_id = s.id
+       LEFT JOIN users p ON l.parent_id = p.id
+       LEFT JOIN users w ON l.warden_id = w.id
+       WHERE s.branch_id = $1 AND s.division = $2
+       ORDER BY l.created_at DESC
+       LIMIT 50`,
+      [advisor.branch_id, advisor.division]
+    );
+
+    res.json({ 
+      students: studentsSummary.rows,
+      recentLeaves: recentLeaves.rows
+    });
+  } catch (err) {
+    console.error('Error in getStudentsSummary:', err);
     res.status(500).json({ msg: "Server error" });
   }
 };
