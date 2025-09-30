@@ -1,7 +1,7 @@
 // src/pages/AdminDashboard.jsx
 import React, { useState, useEffect } from "react";
 import "../assets/styles/styles.css";
-import logo from "../assets/college-1.jpg";
+import logo from "../assets/college-logo.png";
 //import api from "../api"; // Make sure api.js is in src/
 
 const AdminDashboard = () => {
