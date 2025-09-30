@@ -1,6 +1,6 @@
 // src/pages/ParentDashboard.jsx
 import React, { useEffect, useState } from "react";
-import "../assets/styles/styles.css";
+import "../assets/styles/parentDashboard.css";
 import logo from "../assets/college-logo.png";
 import { getLeaves, parentApprove, confirmArrival, uploadProof } from "../api";
 

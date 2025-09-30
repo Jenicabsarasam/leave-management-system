@@ -1,6 +1,6 @@
 // src/pages/StudentDashboard.jsx
 import React, { useEffect, useState } from "react";
-import "../assets/styles/styles.css";
+import "../assets/styles/studentDashboard.css";
 import logo from "../assets/college-logo.png";
 import { applyLeave, getLeaves } from "../api";
 
