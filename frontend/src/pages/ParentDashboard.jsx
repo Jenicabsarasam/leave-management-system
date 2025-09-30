@@ -1,7 +1,7 @@
-// src/pages/ParentDashboard.jsx - Complete Updated Version
+// src/pages/ParentDashboard.jsx
 import React, { useEffect, useState } from "react";
 import "../assets/styles/styles.css";
-import logo from "../assets/college-1.jpg";
+import logo from "../assets/college-logo.png";
 import { getLeaves, parentApprove, confirmArrival, uploadProof } from "../api";
 
 const ParentDashboard = () => {
@@ -9,7 +9,16 @@ const ParentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedProofFile, setSelectedProofFile] = useState(null);
   const [uploadingProof, setUploadingProof] = useState({});
+  const [activeTab, setActiveTab] = useState("all");
   const token = localStorage.getItem("token");
+
+  // Define canUploadProof function BEFORE it's used
+  const canUploadProof = (leave) => {
+    return leave.type === "emergency" && 
+           leave.status === "completed" && 
+           leave.arrival_timestamp && 
+           !leave.proof_submitted;
+  };
 
   const fetchLeaves = async () => {
     try {
@@ -91,198 +100,343 @@ const ParentDashboard = () => {
     }
   };
 
+  // Filter leaves based on active tab
+  const filteredLeaves = leaves.filter(leave => {
+    if (activeTab === "all") return true;
+    if (activeTab === "pending") return leave.status === "pending";
+    if (activeTab === "arrival") return leave.status === "warden_approved" && !leave.arrival_timestamp;
+    if (activeTab === "proof") return canUploadProof(leave);
+    return true;
+  });
+
+  // Statistics
+  const stats = {
+    total: leaves.length,
+    pending: leaves.filter(l => l.status === "pending").length,
+    arrival: leaves.filter(l => l.status === "warden_approved" && !l.arrival_timestamp).length,
+    proof: leaves.filter(canUploadProof).length,
+    emergency: leaves.filter(l => l.type === "emergency").length,
+    normal: leaves.filter(l => l.type === "normal").length
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'pending': return '⏳';
+      case 'warden_approved': return '✅';
+      case 'completed': return '';
+      default: return '📝';
+    }
+  };
+
+  const getTypeIcon = (type) => {
+    return type === 'emergency' ? '🚨' : '📋';
+  };
+
   const getStatusBadge = (status) => {
     const statusMap = {
-      pending: "Pending Parent Approval",
-      parent_approved: "Approved by Parent",
+      pending: "Pending Your Approval",
+      parent_approved: "Approved by You",
       advisor_approved: "Approved by Advisor", 
       warden_approved: "Approved - Confirm Arrival",
-      meeting_scheduled: "Meeting Scheduled with Warden",
+      meeting_scheduled: "Meeting Scheduled",
       rejected: "Rejected",
       completed: "Completed"
     };
     return statusMap[status] || status;
   };
 
-  const canUploadProof = (leave) => {
-    return leave.type === "emergency" && 
-           leave.status === "completed" && 
-           leave.arrival_timestamp && 
-           !leave.proof_submitted;
-  };
-
   return (
-    <div className="container">
-      <header className="header">
-        <div className="brand">
-          <img src={logo} alt="logo" />
-          <h1>Parent Dashboard</h1>
+    <div className="dashboard-container">
+      {/* Header */}
+      <header className="dashboard-header">
+        <div className="dashboard-brand">
+          <div className="logo-container">
+            <img src={logo} alt="College Logo" />
+          </div>
+          <div className="dashboard-title">
+            <h1>Parent Dashboard</h1>
+            <p>Manage your child's leave requests and approvals</p>
+          </div>
         </div>
-        <nav className="nav">
-          <a href="/">Home</a>
-          <a href="/signin">Sign out</a>
+        <nav className="dashboard-nav">
+          <a href="/" className="nav-link">🏠 Home</a>
+          <a href="/signin" className="nav-link logout">🚪 Sign Out</a>
         </nav>
       </header>
 
-      <main className="card">
-        <h3 style={{ marginTop: 0 }}>Your Child's Leave Requests</h3>
+      <div className="dashboard-content">
+        {/* Stats Overview */}
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon total">👨‍👩‍👧</div>
+            <div className="stat-info">
+              <div className="stat-number">{stats.total}</div>
+              <div className="stat-label">Total Requests</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon pending">⏳</div>
+            <div className="stat-info">
+              <div className="stat-number">{stats.pending}</div>
+              <div className="stat-label">Pending Approval</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon arrival">✅</div>
+            <div className="stat-info">
+              <div className="stat-number">{stats.arrival}</div>
+              <div className="stat-label">Awaiting Arrival</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon proof">📎</div>
+            <div className="stat-info">
+              <div className="stat-number">{stats.proof}</div>
+              <div className="stat-label">Need Proof</div>
+            </div>
+          </div>
+        </div>
 
-        {loading ? (
-          <p>Loading requests...</p>
-        ) : leaves.length === 0 ? (
-          <p>No pending requests from your child.</p>
-        ) : (
-          <div className="leaves-list">
-            {leaves.map(leave => (
-              <div key={leave.id} className="leave-item card" style={{ 
-                marginBottom: "16px", 
-                padding: "16px",
-                borderLeft: leave.type === "emergency" ? "4px solid #dc3545" : "4px solid #007bff"
-              }}>
-                <div className="leave-header">
-                  <div>
-                    <strong>Student: {leave.student_name} (Roll No: {leave.student_rollno})</strong>
-                    {leave.type === "emergency" && (
-                      <div style={{ color: "#dc3545", fontWeight: "bold", marginTop: "4px" }}>
-                        🚨 EMERGENCY LEAVE
-                      </div>
-                    )}
-                  </div>
-                  <span className={`status-badge ${leave.status}`}>
-                    {getStatusBadge(leave.status)}
-                  </span>
-                </div>
-                
-                <div className="leave-details">
-                  <p><strong>Reason:</strong> {leave.reason}</p>
-                  <p><strong>Dates:</strong> {new Date(leave.start_date).toLocaleDateString()} to {new Date(leave.end_date).toLocaleDateString()}</p>
-                  <p><strong>Type:</strong> {leave.type === "emergency" ? "🚨 Emergency" : "📝 Normal"}</p>
-                  <p><strong>Applied on:</strong> {new Date(leave.created_at).toLocaleDateString()}</p>
-                  
-                  {/* Show meeting details if scheduled */}
-                  {leave.meeting_scheduled && leave.meeting_date && (
-                    <p style={{ color: "#007bff", fontWeight: "bold" }}>
-                      📅 Meeting Scheduled: {new Date(leave.meeting_date).toLocaleString()}
-                    </p>
-                  )}
-                  
-                  {/* Show warden comments if any */}
-                  {leave.warden_comments && (
-                    <p style={{ color: "#666", fontStyle: "italic" }}>
-                      <strong>Warden Notes:</strong> {leave.warden_comments}
-                    </p>
-                  )}
-                  
-                  {/* Show proof status */}
-                  {leave.proof_submitted && (
-                    <p style={{ color: "green", fontWeight: "bold" }}>
-                      📎 Proof submitted on {new Date(leave.proof_submitted_at).toLocaleDateString()}
-                      {leave.proof_verified && " ✅ Verified by Advisor"}
-                    </p>
-                  )}
-                </div>
-
-                <div className="leave-actions">
-                  {leave.status === "pending" && (
-                    <div>
-                      <p style={{ marginBottom: "8px" }}>Approve this leave request?</p>
-                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                        <button 
-                          className="btn btn-primary" 
-                          onClick={() => handleAction(leave.id, "approve")}
-                        >
-                          ✅ Approve
-                        </button>
-                        <button 
-                          className="btn btn-outline" 
-                          onClick={() => handleAction(leave.id, "reject")}
-                        >
-                          ❌ Reject
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {leave.status === "warden_approved" && !leave.arrival_timestamp && (
-                    <div>
-                      <p style={{ marginBottom: "8px" }}>Your child has returned from leave:</p>
-                      <button 
-                        className="btn btn-primary" 
-                        onClick={() => handleArrival(leave.id)}
-                      >
-                        ✅ Confirm Safe Arrival
-                      </button>
-                    </div>
-                  )}
-
-                  {leave.arrival_timestamp && (
-                    <p style={{ color: "green", marginBottom: "8px" }}>
-                      ✅ Arrival confirmed on {new Date(leave.arrival_timestamp).toLocaleString()}
-                    </p>
-                  )}
-
-                  {/* Proof Upload Section for Emergency Leaves */}
-                  {canUploadProof(leave) && (
-                    <div style={{ marginTop: "12px", padding: "12px", backgroundColor: "#f8f9fa", borderRadius: "4px" }}>
-                      <h4 style={{ margin: "0 0 8px 0", color: "#dc3545" }}>📎 Submit Emergency Leave Proof</h4>
-                      <p style={{ margin: "0 0 8px 0", fontSize: "14px", color: "#666" }}>
-                        Please upload supporting documents (medical certificate, tickets, etc.) as PDF.
-                      </p>
-                      
-                      <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-                        <input
-                          type="file"
-                          accept=".pdf"
-                          onChange={(e) => handleProofFileSelect(leave.id, e.target.files[0])}
-                          style={{ flex: "1", minWidth: "200px" }}
-                        />
-                        <button 
-                          className="btn btn-primary" 
-                          onClick={() => handleProofUpload(leave.id)}
-                          disabled={!selectedProofFile || selectedProofFile.leaveId !== leave.id || uploadingProof[leave.id]}
-                          style={{ backgroundColor: "#28a745" }}
-                        >
-                          {uploadingProof[leave.id] ? "Uploading..." : "📎 Upload Proof"}
-                        </button>
-                      </div>
-                      
-                      {selectedProofFile && selectedProofFile.leaveId === leave.id && (
-                        <p style={{ margin: "8px 0 0 0", color: "green", fontSize: "12px" }}>
-                          Selected: {selectedProofFile.file.name}
-                        </p>
-                      )}
-                    </div>
-                  )}
+        <div className="dashboard-grid">
+          {/* Left Column - Leave Requests */}
+          <div className="dashboard-column">
+            <div className="dashboard-card">
+              <div className="card-header">
+                <h2>Leave Requests</h2>
+                <div className="tabs">
+                  <button 
+                    className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('all')}
+                  >
+                    All ({stats.total})
+                  </button>
+                  <button 
+                    className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('pending')}
+                  >
+                    Pending ({stats.pending})
+                  </button>
+                  <button 
+                    className={`tab-btn ${activeTab === 'arrival' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('arrival')}
+                  >
+                    Arrival ({stats.arrival})
+                  </button>
+                  <button 
+                    className={`tab-btn ${activeTab === 'proof' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('proof')}
+                  >
+                    Proof ({stats.proof})
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
 
-        <div style={{ marginTop: "20px" }} className="card">
-          <h4 style={{ marginTop: 0 }}>Summary</h4>
-          <div className="kv">Pending actions: <strong>{leaves.length}</strong></div>
-          <div className="kv">
-            Normal leaves: <strong>{leaves.filter(l => l.type === "normal").length}</strong> | 
-            Emergency leaves: <strong>{leaves.filter(l => l.type === "emergency").length}</strong>
+              {loading ? (
+                <div className="loading-state">
+                  <div className="loading-spinner"></div>
+                  <p>Loading leave requests...</p>
+                </div>
+              ) : filteredLeaves.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">📝</div>
+                  <h3>No leave requests</h3>
+                  <p>{
+                    activeTab === 'all' 
+                      ? "No pending leave requests from your child."
+                      : `No ${activeTab} leave requests found.`
+                  }</p>
+                </div>
+              ) : (
+                <div className="leaves-list">
+                  {filteredLeaves.map(leave => (
+                    <div key={leave.id} className="leave-card">
+                      <div className="leave-header">
+                        <div className="student-info">
+                          <div className="student-name">
+                            👤 {leave.student_name}
+                          </div>
+                          <div className="student-roll">
+                            Roll No: {leave.student_rollno}
+                          </div>
+                        </div>
+                        <div className="leave-type-status">
+                          <span className={`type-badge ${leave.type}`}>
+                            {getTypeIcon(leave.type)} {leave.type === 'emergency' ? 'Emergency' : 'Normal'}
+                          </span>
+                          <span className={`status-badge ${leave.status}`}>
+                            {getStatusIcon(leave.status)} {getStatusBadge(leave.status)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="leave-reason">
+                        {leave.reason}
+                      </div>
+                      
+                      <div className="leave-dates">
+                        <span className="date-range">
+                          📅 {new Date(leave.start_date).toLocaleDateString()} → {new Date(leave.end_date).toLocaleDateString()}
+                        </span>
+                        <span className="duration">
+                          ({Math.ceil((new Date(leave.end_date) - new Date(leave.start_date)) / (1000 * 60 * 60 * 24)) + 1} days)
+                        </span>
+                      </div>
+
+                      {/* Additional Information */}
+                      <div className="leave-meta">
+                        <span className="meta-item">
+                          🕒 Applied: {new Date(leave.created_at).toLocaleDateString()}
+                        </span>
+                        
+                        {/* Show meeting details if scheduled */}
+                        {leave.meeting_scheduled && leave.meeting_date && (
+                          <span className="meta-item meeting">
+                            📅 Meeting: {new Date(leave.meeting_date).toLocaleString()}
+                          </span>
+                        )}
+                        
+                        {/* Show warden comments if any */}
+                        {leave.warden_comments && (
+                          <span className="meta-item comments">
+                            💬 Warden: {leave.warden_comments}
+                          </span>
+                        )}
+                        
+                        {/* Show proof status */}
+                        {leave.proof_submitted && (
+                          <span className="meta-item proof-submitted">
+                            📎 Proof submitted on {new Date(leave.proof_submitted_at).toLocaleDateString()}
+                            {leave.proof_verified && " ✅ Verified"}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="leave-actions">
+                        {leave.status === "pending" && (
+                          <div className="action-section">
+                            <div className="action-prompt">Approve this leave request?</div>
+                            <div className="action-buttons">
+                              <button 
+                                className="btn btn-success" 
+                                onClick={() => handleAction(leave.id, "approve")}
+                              >
+                                ✅ Approve
+                              </button>
+                              <button 
+                                className="btn btn-danger" 
+                                onClick={() => handleAction(leave.id, "reject")}
+                              >
+                                ❌ Reject
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {leave.status === "warden_approved" && !leave.arrival_timestamp && (
+                          <div className="action-section">
+                            <div className="action-prompt">Your child has returned from leave:</div>
+                            <button 
+                              className="btn btn-primary" 
+                              onClick={() => handleArrival(leave.id)}
+                            >
+                              ✅ Confirm Safe Arrival
+                            </button>
+                          </div>
+                        )}
+
+                        {leave.arrival_timestamp && (
+                          <div className="action-completed">
+                            <span className="success-text">
+                              ✅ Arrival confirmed on {new Date(leave.arrival_timestamp).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Proof Upload Section for Emergency Leaves */}
+                        {canUploadProof(leave) && (
+                          <div className="proof-upload-section">
+                            <div className="proof-header">
+                              <h4>📎 Submit Emergency Leave Proof</h4>
+                              <p>Please upload supporting documents (medical certificate, tickets, etc.) as PDF.</p>
+                            </div>
+                            
+                            <div className="proof-upload-controls">
+                              <input
+                                type="file"
+                                accept=".pdf"
+                                onChange={(e) => handleProofFileSelect(leave.id, e.target.files[0])}
+                                className="file-input"
+                              />
+                              <button 
+                                className="btn btn-success" 
+                                onClick={() => handleProofUpload(leave.id)}
+                                disabled={!selectedProofFile || selectedProofFile.leaveId !== leave.id || uploadingProof[leave.id]}
+                              >
+                                {uploadingProof[leave.id] ? "📤 Uploading..." : "📎 Upload Proof"}
+                              </button>
+                            </div>
+                            
+                            {selectedProofFile && selectedProofFile.leaveId === leave.id && (
+                              <div className="file-selected">
+                                Selected: {selectedProofFile.file.name}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <div className="kv">
-            Awaiting approval: <strong>{leaves.filter(l => l.status === "pending").length}</strong> | 
-            Awaiting arrival confirmation: <strong>{leaves.filter(l => l.status === "warden_approved" && !l.arrival_timestamp).length}</strong>
-          </div>
-          <div className="kv">
-            Need proof upload: <strong>{leaves.filter(canUploadProof).length}</strong>
+
+          {/* Right Column - Summary & Settings */}
+          <div className="dashboard-column">
+            <div className="dashboard-card">
+              <div className="card-header">
+                <h2>Quick Summary</h2>
+              </div>
+              <div className="summary-stats">
+                <div className="summary-item">
+                  <div className="summary-label">Normal Leaves</div>
+                  <div className="summary-value">{stats.normal}</div>
+                </div>
+                <div className="summary-item">
+                  <div className="summary-label">Emergency Leaves</div>
+                  <div className="summary-value emergency">{stats.emergency}</div>
+                </div>
+                <div className="summary-item">
+                  <div className="summary-label">Awaiting Your Approval</div>
+                  <div className="summary-value pending">{stats.pending}</div>
+                </div>
+                <div className="summary-item">
+                  <div className="summary-label">Awaiting Arrival Confirmation</div>
+                  <div className="summary-value arrival">{stats.arrival}</div>
+                </div>
+                <div className="summary-item">
+                  <div className="summary-label">Need Proof Upload</div>
+                  <div className="summary-value proof">{stats.proof}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="dashboard-card">
+              <div className="card-header">
+                <h2>SMS Notifications</h2>
+              </div>
+              <div className="notification-note">
+                <div className="info-icon">💡</div>
+                <div className="info-content">
+                  <strong>Real-time Updates</strong>
+                  <p>You'll receive SMS alerts for all important updates about your child's leave status.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-
-        <div style={{ marginTop: "20px" }} className="card">
-          <h4 style={{ marginTop: 0 }}>SMS Authorization</h4>
-          <p className="kv">You will receive SMS alerts about leave status and arrival confirmation.</p>
-          <label>
-            <input type="checkbox" checked readOnly /> Enable SMS notifications
-          </label>
-        </div>
-      </main>
+      </div>
     </div>
   );
 };

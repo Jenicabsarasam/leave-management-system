@@ -1,7 +1,7 @@
-// src/pages/AdvisorDashboard.jsx - Complete Version
+// src/pages/AdvisorDashboard.jsx
 import React, { useEffect, useState } from "react";
-import "../assets/styles/styles.css";
-import logo from "../assets/college-1.jpg";
+import "../assets/styles/advisorDashboard.css";
+import logo from "../assets/college-logo.png";
 import { advisorReview, getLeaves, getStudentsSummary, verifyProof } from "../api";
 
 const AdvisorDashboard = () => {
@@ -63,6 +63,31 @@ const AdvisorDashboard = () => {
     }
   };
 
+  // Statistics
+  const stats = {
+    totalStudents: studentsSummary.length,
+    totalLeaves: studentsSummary.reduce((sum, student) => sum + (student.total_leaves || 0), 0),
+    emergencyLeaves: studentsSummary.reduce((sum, student) => sum + (student.emergency_leaves || 0), 0),
+    pendingReviews: leaves.length,
+    proofsSubmitted: studentsSummary.reduce((sum, student) => sum + (student.proofs_submitted || 0), 0),
+    proofsVerified: studentsSummary.reduce((sum, student) => sum + (student.proofs_verified || 0), 0)
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'pending': return '⏳';
+      case 'parent_approved': return '✅';
+      case 'advisor_approved': return '📚';
+      case 'warden_approved': return '🏠';
+      case 'completed': return '🏁';
+      default: return '📝';
+    }
+  };
+
+  const getTypeIcon = (type) => {
+    return type === 'emergency' ? '🚨' : '📋';
+  };
+
   const getStatusBadge = (status) => {
     const statusMap = {
       pending: "Pending Parent Approval",
@@ -78,228 +103,453 @@ const AdvisorDashboard = () => {
   };
 
   return (
-    <div className="container">
-      <header className="header">
-        <div className="brand">
-          <img src={logo} alt="logo" />
-          <h1>Advisor Dashboard</h1>
+    <div className="dashboard-container">
+      {/* Header */}
+      <header className="dashboard-header">
+        <div className="dashboard-brand">
+          <div className="logo-container">
+            <img src={logo} alt="College Logo" />
+          </div>
+          <div className="dashboard-title">
+            <h1>Advisor Dashboard</h1>
+            <p>Academic oversight and student leave management</p>
+          </div>
         </div>
-        <nav className="nav">
-          <a href="/">Home</a>
-          <a href="/signin">Sign out</a>
+        <nav className="dashboard-nav">
+          <a href="/" className="nav-link">🏠 Home</a>
+          <a href="/signin" className="nav-link logout">🚪 Sign Out</a>
         </nav>
       </header>
 
-      {/* Tab Navigation */}
-      <div className="tabs" style={{ marginBottom: "20px" }}>
-        <button 
-          className={`tab-btn ${activeTab === "pending" ? "active" : ""}`}
-          onClick={() => setActiveTab("pending")}
-        >
-          📋 Pending Reviews
-        </button>
-        <button 
-          className={`tab-btn ${activeTab === "students" ? "active" : ""}`}
-          onClick={() => setActiveTab("students")}
-        >
-          👥 Students Summary
-        </button>
-        <button 
-          className={`tab-btn ${activeTab === "reports" ? "active" : ""}`}
-          onClick={() => setActiveTab("reports")}
-        >
-          📊 Reports & Analytics
-        </button>
-      </div>
+      <div className="dashboard-content">
+        {/* Stats Overview */}
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon">👥</div>
+            <div className="stat-info">
+              <div className="stat-number">{stats.totalStudents}</div>
+              <div className="stat-label">Total Students</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">📋</div>
+            <div className="stat-info">
+              <div className="stat-number">{stats.pendingReviews}</div>
+              <div className="stat-label">Pending Reviews</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">🚨</div>
+            <div className="stat-info">
+              <div className="stat-number">{stats.emergencyLeaves}</div>
+              <div className="stat-label">Emergency Leaves</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">📎</div>
+            <div className="stat-info">
+              <div className="stat-number">{stats.proofsSubmitted}</div>
+              <div className="stat-label">Proofs Submitted</div>
+            </div>
+          </div>
+        </div>
 
-      <main className="card">
-        {/* Pending Reviews Tab */}
-        {activeTab === "pending" && (
-          <>
-            <h3 style={{ marginTop: 0 }}>Leave Requests Awaiting Your Review</h3>
-            {loading ? (
-              <p>Loading pending leaves...</p>
-            ) : leaves.length === 0 ? (
-              <p>No leave requests pending your review.</p>
-            ) : (
-              <div className="leaves-list">
-                {leaves.map(leave => (
-                  <div key={leave.id} className="leave-item card" style={{ marginBottom: "16px", padding: "16px" }}>
-                    <div className="leave-header">
-                      <strong>Student: {leave.student_name} (Roll No: {leave.student_rollno})</strong>
-                      <span className={`status-badge ${leave.status}`}>
-                        {getStatusBadge(leave.status)}
-                      </span>
-                    </div>
-                    
-                    <div className="leave-details">
-                      <p><strong>Branch & Division:</strong> {leave.branch_name} - Division {leave.student_division}</p>
-                      <p><strong>Hostel:</strong> {leave.hostel_name}</p>
-                      <p><strong>Reason:</strong> {leave.reason}</p>
-                      <p><strong>Dates:</strong> {new Date(leave.start_date).toLocaleDateString()} to {new Date(leave.end_date).toLocaleDateString()}</p>
-                      <p><strong>Type:</strong> {leave.type === "emergency" ? "🚨 Emergency" : "📝 Normal"}</p>
-                      <p><strong>Applied on:</strong> {new Date(leave.created_at).toLocaleDateString()}</p>
-                    </div>
+        {/* Tab Navigation */}
+        <div className="dashboard-tabs">
+          <button 
+            className={`tab-btn ${activeTab === "pending" ? "active" : ""}`}
+            onClick={() => setActiveTab("pending")}
+          >
+            📋 Pending Reviews ({stats.pendingReviews})
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === "students" ? "active" : ""}`}
+            onClick={() => setActiveTab("students")}
+          >
+            👥 Students Summary ({stats.totalStudents})
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === "reports" ? "active" : ""}`}
+            onClick={() => setActiveTab("reports")}
+          >
+            📊 Reports & Analytics
+          </button>
+        </div>
 
-                    <div className="leave-actions">
-                      {leave.status === "parent_approved" && (
-                        <div>
-                          <p style={{ marginBottom: "8px" }}>Review this leave request:</p>
-                          <button 
-                            className="btn btn-primary" 
-                            onClick={() => handleDecision(leave.id, "approve")}
-                            style={{ marginRight: "8px" }}
-                          >
-                            ✅ Approve
-                          </button>
-                          <button 
-                            className="btn btn-outline" 
-                            onClick={() => handleDecision(leave.id, "reject")}
-                          >
-                            ❌ Reject
-                          </button>
+        <div className="dashboard-grid">
+          {/* Main Content Area */}
+          <div className="dashboard-column main-content">
+            {/* Pending Reviews Tab */}
+            {activeTab === "pending" && (
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h2>Leave Requests Awaiting Your Review</h2>
+                  <div className="card-badge pending">{stats.pendingReviews} Pending</div>
+                </div>
+
+                {loading ? (
+                  <div className="loading-state">
+                    <div className="loading-spinner"></div>
+                    <p>Loading pending leaves...</p>
+                  </div>
+                ) : leaves.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-icon">✅</div>
+                    <h3>All caught up!</h3>
+                    <p>No leave requests pending your review.</p>
+                  </div>
+                ) : (
+                  <div className="leaves-list">
+                    {leaves.map(leave => (
+                      <div key={leave.id} className="leave-card">
+                        <div className="leave-header">
+                          <div className="student-info">
+                            <div className="student-name">
+                              👤 {leave.student_name}
+                            </div>
+                            <div className="student-details">
+                              Roll No: {leave.student_rollno} • {leave.branch_name} - Division {leave.student_division}
+                            </div>
+                            <div className="student-hostel">
+                              🏠 {leave.hostel_name}
+                            </div>
+                          </div>
+                          <div className="leave-type-status">
+                            <span className={`type-badge ${leave.type}`}>
+                              {getTypeIcon(leave.type)} {leave.type === 'emergency' ? 'Emergency' : 'Normal'}
+                            </span>
+                            <span className={`status-badge ${leave.status}`}>
+                              {getStatusIcon(leave.status)} {getStatusBadge(leave.status)}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="leave-reason">
+                          {leave.reason}
+                        </div>
+                        
+                        <div className="leave-dates">
+                          <span className="date-range">
+                            📅 {new Date(leave.start_date).toLocaleDateString()} → {new Date(leave.end_date).toLocaleDateString()}
+                          </span>
+                          <span className="duration">
+                            ({Math.ceil((new Date(leave.end_date) - new Date(leave.start_date)) / (1000 * 60 * 60 * 24)) + 1} days)
+                          </span>
+                        </div>
+
+                        <div className="leave-meta">
+                          <span className="meta-item">
+                            🕒 Applied: {new Date(leave.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+
+                        <div className="leave-actions">
+                          {leave.status === "parent_approved" && (
+                            <div className="action-section">
+                              <div className="action-prompt">Academic Review Required:</div>
+                              <div className="action-buttons">
+                                <button 
+                                  className="btn btn-success" 
+                                  onClick={() => handleDecision(leave.id, "approve")}
+                                >
+                                  ✅ Academic Approval
+                                </button>
+                                <button 
+                                  className="btn btn-danger" 
+                                  onClick={() => handleDecision(leave.id, "reject")}
+                                >
+                                  ❌ Academic Rejection
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {leave.status === "pending" && (
+                            <div className="waiting-section">
+                              <span className="waiting-text">
+                                ⏳ Waiting for parent approval
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Students Summary Tab */}
+            {activeTab === "students" && (
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h2>Students Summary & Analytics</h2>
+                  <div className="card-badge students">{stats.totalStudents} Students</div>
+                </div>
+
+                {/* Students Grid */}
+                <div className="students-grid">
+                  {studentsSummary.map(student => (
+                    <div 
+                      key={student.id} 
+                      className="student-card"
+                      onClick={() => setSelectedStudent(student)}
+                    >
+                      <div className="student-header">
+                        <div className="student-avatar">
+                          {student.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="student-info">
+                          <div className="student-name">{student.name}</div>
+                          <div className="student-roll">Roll No: {student.roll_number}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="student-stats">
+                        <div className="stat-item">
+                          <span className="stat-label">Total Leaves</span>
+                          <span className="stat-value">{student.total_leaves || 0}</span>
+                        </div>
+                        <div className="stat-item">
+                          <span className="stat-label">Emergency</span>
+                          <span className="stat-value emergency">{student.emergency_leaves || 0}</span>
+                        </div>
+                        <div className="stat-item">
+                          <span className="stat-label">Proofs</span>
+                          <span className="stat-value proof">{student.proofs_submitted || 0}</span>
+                        </div>
+                      </div>
+
+                      {student.proofs_submitted > 0 && (
+                        <div className="proof-indicator">
+                          📎 {student.proofs_submitted || 0} proof(s) submitted
+                          {student.proofs_verified > 0 && (
+                            <span className="verified-count"> • {student.proofs_verified} verified</span>
+                          )}
                         </div>
                       )}
-                      
-                      {leave.status === "pending" && (
-                        <p style={{ color: "orange" }}>
-                          ⏳ Waiting for parent approval
-                        </p>
-                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Reports Tab */}
+            {activeTab === "reports" && (
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h2>Reports & Analytics</h2>
+                  <div className="card-badge reports">AI Powered</div>
+                </div>
+
+                <div className="reports-grid">
+                  <div className="report-card">
+                    <div className="report-icon">📊</div>
+                    <div className="report-content">
+                      <h3>Monthly Leave Report</h3>
+                      <p>Comprehensive analysis of all leave requests for the current month</p>
+                      <button className="btn btn-primary btn-full">Generate Report</button>
+                    </div>
+                  </div>
+
+                  <div className="report-card">
+                    <div className="report-icon">🚨</div>
+                    <div className="report-content">
+                      <h3>Emergency Leave Analysis</h3>
+                      <p>Detailed breakdown of emergency leave patterns and trends</p>
+                      <button className="btn btn-outline btn-full">View Analysis</button>
+                    </div>
+                  </div>
+
+                  <div className="report-card">
+                    <div className="report-icon">📎</div>
+                    <div className="report-content">
+                      <h3>Proof Submission Report</h3>
+                      <p>Track proof submission rates and verification status</p>
+                      <button className="btn btn-outline btn-full">Generate Report</button>
+                    </div>
+                  </div>
+
+                  <div className="report-card">
+                    <div className="report-icon">👥</div>
+                    <div className="report-content">
+                      <h3>Student Attendance Analytics</h3>
+                      <p>Academic impact analysis of student leaves</p>
+                      <button className="btn btn-outline btn-full">View Analytics</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="ai-note">
+                  <div className="info-icon">🤖</div>
+                  <div className="info-content">
+                    <strong>AI-Powered Insights</strong>
+                    <p>Advanced analytics and predictive insights coming soon to help you identify patterns and make data-driven decisions.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar - Quick Stats */}
+          <div className="dashboard-column sidebar">
+            <div className="dashboard-card">
+              <div className="card-header">
+                <h3>Quick Overview</h3>
+              </div>
+              <div className="quick-stats">
+                <div className="quick-stat">
+                  <div className="quick-stat-icon">📚</div>
+                  <div className="quick-stat-info">
+                    <div className="quick-stat-value">{stats.totalStudents}</div>
+                    <div className="quick-stat-label">Students</div>
+                  </div>
+                </div>
+                <div className="quick-stat">
+                  <div className="quick-stat-icon">⏳</div>
+                  <div className="quick-stat-info">
+                    <div className="quick-stat-value">{stats.pendingReviews}</div>
+                    <div className="quick-stat-label">Pending Reviews</div>
+                  </div>
+                </div>
+                <div className="quick-stat">
+                  <div className="quick-stat-icon">🚨</div>
+                  <div className="quick-stat-info">
+                    <div className="quick-stat-value">{stats.emergencyLeaves}</div>
+                    <div className="quick-stat-label">Emergency Leaves</div>
+                  </div>
+                </div>
+                <div className="quick-stat">
+                  <div className="quick-stat-icon">📎</div>
+                  <div className="quick-stat-info">
+                    <div className="quick-stat-value">{stats.proofsSubmitted}</div>
+                    <div className="quick-stat-label">Proofs Submitted</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="dashboard-card">
+              <div className="card-header">
+                <h3>Recent Activity</h3>
+              </div>
+              <div className="recent-activity">
+                {recentLeaves.slice(0, 5).map(leave => (
+                  <div key={leave.id} className="activity-item">
+                    <div className="activity-icon">
+                      {getTypeIcon(leave.type)}
+                    </div>
+                    <div className="activity-content">
+                      <div className="activity-text">
+                        {leave.student_name} - {leave.reason}
+                      </div>
+                      <div className="activity-meta">
+                        {new Date(leave.created_at).toLocaleDateString()} • {getStatusBadge(leave.status)}
+                      </div>
                     </div>
                   </div>
                 ))}
+                {recentLeaves.length === 0 && (
+                  <div className="no-activity">
+                    No recent activity to display
+                  </div>
+                )}
               </div>
-            )}
-          </>
-        )}
+            </div>
+          </div>
+        </div>
+      </div>
 
-        {/* Students Summary Tab */}
-        {activeTab === "students" && (
-          <>
-            <h3 style={{ marginTop: 0 }}>Students Summary & Analytics</h3>
+      {/* Student Detail Modal */}
+      {selectedStudent && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>{selectedStudent.name} - Student Details</h2>
+              <button className="modal-close" onClick={() => setSelectedStudent(null)}>×</button>
+            </div>
             
-            {/* Summary Cards */}
-            <div className="summary-cards" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginBottom: "20px" }}>
-              <div className="card" style={{ textAlign: "center", padding: "16px" }}>
-                <h4 style={{ margin: "0 0 8px 0", color: "#007bff" }}>{studentsSummary.length}</h4>
-                <p style={{ margin: 0, color: "#666" }}>Total Students</p>
-              </div>
-              <div className="card" style={{ textAlign: "center", padding: "16px" }}>
-                <h4 style={{ margin: "0 0 8px 0", color: "#28a745" }}>
-                  {studentsSummary.reduce((sum, student) => sum + (student.completed_leaves || 0), 0)}
-                </h4>
-                <p style={{ margin: 0, color: "#666" }}>Completed Leaves</p>
-              </div>
-              <div className="card" style={{ textAlign: "center", padding: "16px" }}>
-                <h4 style={{ margin: "0 0 8px 0", color: "#dc3545" }}>
-                  {studentsSummary.reduce((sum, student) => sum + (student.emergency_leaves || 0), 0)}
-                </h4>
-                <p style={{ margin: 0, color: "#666" }}>Emergency Leaves</p>
-              </div>
-              <div className="card" style={{ textAlign: "center", padding: "16px" }}>
-                <h4 style={{ margin: "0 0 8px 0", color: "#ffc107" }}>
-                  {studentsSummary.reduce((sum, student) => sum + (student.proofs_submitted || 0), 0)}
-                </h4>
-                <p style={{ margin: 0, color: "#666" }}>Proofs Submitted</p>
-              </div>
-            </div>
-
-            {/* Students List */}
-            <div className="students-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "16px" }}>
-              {studentsSummary.map(student => (
-                <div 
-                  key={student.id} 
-                  className="card student-card" 
-                  style={{ padding: "16px", cursor: "pointer", borderLeft: "4px solid #007bff" }}
-                  onClick={() => setSelectedStudent(student)}
-                >
-                  <h4 style={{ margin: "0 0 8px 0" }}>{student.name}</h4>
-                  <p style={{ margin: "4px 0", color: "#666" }}>Roll No: {student.roll_number}</p>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px" }}>
-                    <span>Leaves: {student.total_leaves || 0}</span>
-                    <span>Emergency: {student.emergency_leaves || 0}</span>
+            <div className="modal-body">
+              <div className="student-profile">
+                <div className="profile-header">
+                  <div className="profile-avatar">
+                    {selectedStudent.name.charAt(0).toUpperCase()}
                   </div>
-                  {student.proofs_submitted > 0 && (
-                    <div style={{ marginTop: "8px", padding: "4px", backgroundColor: "#fff3cd", borderRadius: "4px" }}>
-                      📎 {student.proofs_submitted || 0} proof(s) submitted
-                    </div>
-                  )}
+                  <div className="profile-info">
+                    <h3>{selectedStudent.name}</h3>
+                    <p>Roll No: {selectedStudent.roll_number}</p>
+                  </div>
                 </div>
-              ))}
-            </div>
 
-            {/* Student Detail Modal */}
-            {selectedStudent && (
-              <div className="modal" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-                <div className="card" style={{ width: "90%", maxWidth: "800px", maxHeight: "90vh", overflow: "auto" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                    <h3 style={{ margin: 0 }}>{selectedStudent.name} - Leave History</h3>
-                    <button onClick={() => setSelectedStudent(null)} style={{ background: "none", border: "none", fontSize: "24px", cursor: "pointer" }}>×</button>
+                <div className="profile-stats">
+                  <div className="profile-stat">
+                    <span className="stat-label">Email</span>
+                    <span className="stat-value">{selectedStudent.email}</span>
                   </div>
-                  
-                  <div className="student-details">
-                    <p><strong>Roll Number:</strong> {selectedStudent.roll_number}</p>
-                    <p><strong>Email:</strong> {selectedStudent.email}</p>
-                    <p><strong>Phone:</strong> {selectedStudent.phone}</p>
-                    <p><strong>Total Leaves:</strong> {selectedStudent.total_leaves || 0}</p>
-                    <p><strong>Emergency Leaves:</strong> {selectedStudent.emergency_leaves || 0}</p>
-                    <p><strong>Proofs Submitted:</strong> {selectedStudent.proofs_submitted || 0}</p>
-                    <p><strong>Proofs Verified:</strong> {selectedStudent.proofs_verified || 0}</p>
+                  <div className="profile-stat">
+                    <span className="stat-label">Phone</span>
+                    <span className="stat-value">{selectedStudent.phone}</span>
                   </div>
+                  <div className="profile-stat">
+                    <span className="stat-label">Total Leaves</span>
+                    <span className="stat-value">{selectedStudent.total_leaves || 0}</span>
+                  </div>
+                  <div className="profile-stat">
+                    <span className="stat-label">Emergency Leaves</span>
+                    <span className="stat-value emergency">{selectedStudent.emergency_leaves || 0}</span>
+                  </div>
+                  <div className="profile-stat">
+                    <span className="stat-label">Proofs Submitted</span>
+                    <span className="stat-value proof">{selectedStudent.proofs_submitted || 0}</span>
+                  </div>
+                  <div className="profile-stat">
+                    <span className="stat-label">Proofs Verified</span>
+                    <span className="stat-value verified">{selectedStudent.proofs_verified || 0}</span>
+                  </div>
+                </div>
+              </div>
 
-                  <h4>Recent Leaves</h4>
-                  <div className="recent-leaves">
-                    {recentLeaves
-                      .filter(leave => leave.student_name === selectedStudent.name)
-                      .slice(0, 5)
-                      .map(leave => (
-                        <div key={leave.id} className="card" style={{ padding: "12px", marginBottom: "8px" }}>
-                          <p><strong>Reason:</strong> {leave.reason}</p>
-                          <p><strong>Dates:</strong> {new Date(leave.start_date).toLocaleDateString()} to {new Date(leave.end_date).toLocaleDateString()}</p>
-                          <p><strong>Status:</strong> {getStatusBadge(leave.status)}</p>
+              <div className="recent-leaves-section">
+                <h4>Recent Leave History</h4>
+                <div className="recent-leaves">
+                  {recentLeaves
+                    .filter(leave => leave.student_name === selectedStudent.name)
+                    .slice(0, 5)
+                    .map(leave => (
+                      <div key={leave.id} className="recent-leave-card">
+                        <div className="leave-summary">
+                          <div className="leave-reason">{leave.reason}</div>
+                          <div className="leave-dates">
+                            {new Date(leave.start_date).toLocaleDateString()} → {new Date(leave.end_date).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className="leave-status">
+                          <span className={`status-badge ${leave.status}`}>
+                            {getStatusBadge(leave.status)}
+                          </span>
                           {leave.proof_submitted && (
-                            <p>
-                              <strong>Proof:</strong> {leave.proof_verified ? "✅ Verified" : "⏳ Pending Verification"}
+                            <span className={`proof-status ${leave.proof_verified ? 'verified' : 'pending'}`}>
+                              {leave.proof_verified ? '✅ Verified' : '📎 Pending Verification'}
                               {!leave.proof_verified && (
                                 <button 
-                                  className="btn btn-primary" 
+                                  className="btn btn-success btn-small" 
                                   onClick={() => handleVerifyProof(leave.id, true)}
-                                  style={{ marginLeft: "8px", padding: "4px 8px" }}
                                 >
                                   Verify
                                 </button>
                               )}
-                            </p>
+                            </span>
                           )}
                         </div>
-                      ))
-                    }
-                  </div>
+                      </div>
+                    ))
+                  }
                 </div>
               </div>
-            )}
-          </>
-        )}
-
-        {/* Reports Tab */}
-        {activeTab === "reports" && (
-          <>
-            <h3 style={{ marginTop: 0 }}>Reports & Analytics</h3>
-            <div className="card">
-              <h4>Generate Reports</h4>
-              <div style={{ display: "flex", gap: "12px", marginBottom: "16px", flexWrap: "wrap" }}>
-                <button className="btn btn-primary">📊 Monthly Leave Report</button>
-                <button className="btn btn-outline">🚨 Emergency Leave Analysis</button>
-                <button className="btn btn-outline">📎 Proof Submission Report</button>
-              </div>
-              <p style={{ color: "#666", fontStyle: "italic" }}>
-                AI-powered analytics and automated reporting features coming soon...
-              </p>
             </div>
-          </>
-        )}
-      </main>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
