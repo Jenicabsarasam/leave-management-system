@@ -106,8 +106,14 @@ export const getLeaves = async (req, res) => {
         }
       }
       
-      // Show leaves that need warden approval AND emergency leaves
-      whereConditions.push(`(l.status IN ('advisor_approved', 'parent_approved', 'emergency_pending') OR l.type = 'emergency')`);
+      // FIXED: Show ALL leaves that need warden attention OR have been processed by warden
+      whereConditions.push(`(
+        l.status IN ('advisor_approved', 'parent_approved', 'emergency_pending', 'proof_requested', 'meeting_scheduled', 'verified') 
+        OR l.type = 'emergency'
+        OR l.warden_id = $${params.length + 1}
+        OR l.status IN ('warden_approved', 'rejected', 'completed')
+      )`);
+      params.push(id); // Add warden's ID to params
     }
 
     // Add WHERE clause if conditions exist

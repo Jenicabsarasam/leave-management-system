@@ -175,10 +175,10 @@ const Home = () => {
           <p>More information about our site</p>
           <div className="cta-buttons">
             <a className="btn btn-primary" href="/signup">
-              Demo Buttons
+              Demo Buttons now goes to sign Up
             </a>
             <a className="btn btn-outline" href="/signin">
-              Demo Buttons
+              Demo Buttons now goes to Sign In
             </a>
           </div>
         </div>
