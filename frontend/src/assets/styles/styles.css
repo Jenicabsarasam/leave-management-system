@@ -586,7 +586,7 @@ body {
   background: rgba(255, 202, 40, 0.1);
   padding: 16px;
   border-radius: 12px;
-  border-left: 4px solid var(--accent);
+  border-left: 4px solid rgb(109, 19, 19);
 }
 
 .info-icon {

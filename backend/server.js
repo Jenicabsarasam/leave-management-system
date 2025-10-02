@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/authRoutes.js";
 import leaveRoutes from "./routes/leaveRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import { initDatabase } from "./database/init.js";
 import db from "./config/db.js";
 import path from "path";
@@ -50,6 +51,7 @@ initDatabase().then(() => {
 // Routes
 app.use("/auth", authRoutes);
 app.use("/leave", leaveRoutes);
+app.use("/admin", adminRoutes);
 
 // Test route
 app.get("/", (req, res) => {

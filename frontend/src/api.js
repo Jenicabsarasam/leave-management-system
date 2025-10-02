@@ -166,3 +166,93 @@ export const getStudentsSummary = async (token) => {
   });
   return handleResponse(res);
 };
+// Admin APIs
+export const getAdminStats = async (token) => {
+  const res = await fetch(`${API_URL}/admin/stats`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  return handleResponse(res);
+};
+
+export const getAllUsers = async (token) => {
+  const res = await fetch(`${API_URL}/admin/users`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  return handleResponse(res);
+};
+
+export const createUser = async (token, userData) => {
+  const res = await fetch(`${API_URL}/admin/users`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify(userData),
+  });
+  return handleResponse(res);
+};
+
+export const updateUser = async (token, userId, userData) => {
+  const res = await fetch(`${API_URL}/admin/users/${userId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+    body: JSON.stringify(userData),
+  });
+  return handleResponse(res);
+};
+
+export const deleteUser = async (token, userId) => {
+  const res = await fetch(`${API_URL}/admin/users/${userId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  return handleResponse(res);
+};
+
+export const getAllLeaves = async (token) => {
+  const res = await fetch(`${API_URL}/admin/leaves`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  return handleResponse(res);
+};
+
+export const getSystemLogs = async (token) => {
+  const res = await fetch(`${API_URL}/admin/logs`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`,
+    },
+  });
+  return handleResponse(res);
+};
+
+export const bulkImportUsers = async (token, formData) => {
+  const res = await fetch(`${API_URL}/admin/users/bulk-import`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+    },
+    body: formData,
+  });
+  return handleResponse(res);
+};
