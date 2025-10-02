@@ -14,6 +14,7 @@ const StudentDashboard = () => {
     try {
       setLoading(true);
       const data = await getLeaves(token);
+      console.log("Student leaves data:", data); // Debug log
       setLeaves(data.leaves || []);
       setLoading(false);
     } catch (err) {
@@ -46,35 +47,63 @@ const StudentDashboard = () => {
     }
   };
 
-  // Filter leaves based on active tab
+  // Filter leaves based on active tab - FIXED STATUS NAMES
   const filteredLeaves = leaves.filter(leave => {
     if (activeTab === "all") return true;
-    if (activeTab === "pending") return leave.status === "pending";
-    if (activeTab === "approved") return leave.status === "approved";
+    if (activeTab === "pending") return leave.status === "pending" || leave.status === "parent_approved" || leave.status === "advisor_approved" || leave.status === "emergency_pending";
+    if (activeTab === "approved") return leave.status === "warden_approved" || leave.status === "completed";
     if (activeTab === "rejected") return leave.status === "rejected";
     return true;
   });
 
-  // Statistics
+  // Statistics - FIXED STATUS NAMES
   const stats = {
     total: leaves.length,
-    approved: leaves.filter(l => l.status === "approved").length,
-    pending: leaves.filter(l => l.status === "pending").length,
+    approved: leaves.filter(l => l.status === "warden_approved" || l.status === "completed").length,
+    pending: leaves.filter(l => l.status === "pending" || l.status === "parent_approved" || l.status === "advisor_approved" || l.status === "emergency_pending").length,
     rejected: leaves.filter(l => l.status === "rejected").length,
     emergency: leaves.filter(l => l.type === "emergency").length
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'approved': return '✅';
+      case 'warden_approved': return '✅';
+      case 'completed': return '🎉';
       case 'pending': return '⏳';
+      case 'parent_approved': return '👨‍👩‍👧';
+      case 'advisor_approved': return '📚';
+      case 'emergency_pending': return '🚨';
       case 'rejected': return '❌';
       default: return '📝';
     }
   };
 
+  const getStatusText = (status) => {
+    const statusMap = {
+      'pending': 'Pending Parent Approval',
+      'parent_approved': 'Approved by Parent',
+      'advisor_approved': 'Approved by Advisor',
+      'emergency_pending': 'Emergency - Pending Warden',
+      'warden_approved': 'Approved by Warden',
+      'completed': 'Completed - Safe Return',
+      'rejected': 'Rejected'
+    };
+    return statusMap[status] || status;
+  };
+
   const getTypeIcon = (type) => {
     return type === 'emergency' ? '🚨' : '📋';
+  };
+
+  // Format date properly
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Invalid Date';
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid Date';
+    }
   };
 
   return (
@@ -220,6 +249,12 @@ const StudentDashboard = () => {
                   >
                     Approved ({stats.approved})
                   </button>
+                  <button 
+                    className={`tab-btn ${activeTab === 'rejected' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('rejected')}
+                  >
+                    Rejected ({stats.rejected})
+                  </button>
                 </div>
               </div>
 
@@ -249,7 +284,7 @@ const StudentDashboard = () => {
                           </span>
                         </div>
                         <div className={`status-badge ${leave.status}`}>
-                          {getStatusIcon(leave.status)} {leave.status.charAt(0).toUpperCase() + leave.status.slice(1)}
+                          {getStatusIcon(leave.status)} {getStatusText(leave.status)}
                         </div>
                       </div>
                       
@@ -259,17 +294,33 @@ const StudentDashboard = () => {
                       
                       <div className="leave-dates">
                         <span className="date-range">
-                          📅 {leave.startDate} → {leave.endDate}
+                          📅 {formatDate(leave.start_date)} → {formatDate(leave.end_date)}
                         </span>
                         <span className="duration">
-                          ({Math.ceil((new Date(leave.endDate) - new Date(leave.startDate)) / (1000 * 60 * 60 * 24)) + 1} days)
+                          {leave.start_date && leave.end_date ? (
+                            `(${Math.ceil((new Date(leave.end_date) - new Date(leave.start_date)) / (1000 * 60 * 60 * 24)) + 1} days)`
+                          ) : ''}
                         </span>
                       </div>
 
                       <div className="leave-meta">
                         <span className="meta-item">
-                          🕒 Applied on: {new Date(leave.createdAt).toLocaleDateString()}
+                          🕒 Applied on: {formatDate(leave.created_at)}
                         </span>
+                        
+                        {/* Show arrival confirmation if completed */}
+                        {leave.arrival_timestamp && (
+                          <span className="meta-item arrival">
+                            🎉 Return confirmed on: {formatDate(leave.arrival_timestamp)}
+                          </span>
+                        )}
+                        
+                        {/* Show warden comments if any */}
+                        {leave.warden_comments && (
+                          <span className="meta-item comments">
+                            💬 Warden Notes: {leave.warden_comments}
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}
