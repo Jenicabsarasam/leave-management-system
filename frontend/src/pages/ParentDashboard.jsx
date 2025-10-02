@@ -26,12 +26,9 @@ const ParentDashboard = () => {
       const data = await getLeaves(token);
       console.log("Parent leaves data:", data);
       
-      // Show leaves that are pending parent approval OR approved but arrival not confirmed OR completed emergency leaves needing proof
-      const parentLeaves = data.leaves?.filter(leave => 
-        leave.status === "pending" || 
-        (leave.status === "warden_approved" && !leave.arrival_timestamp) ||
-        (leave.type === "emergency" && leave.status === "completed" && !leave.proof_submitted)
-      ) || [];
+      // FIXED: Show ALL leaves relevant to parent (not just pending ones)
+      // Parents should see all leaves of their children, including history
+      const parentLeaves = data.leaves || [];
       
       setLeaves(parentLeaves);
       setLoading(false);
@@ -68,13 +65,16 @@ const ParentDashboard = () => {
   };
 
   const handleProofFileSelect = (leaveId, file) => {
-    if (file && file.type === 'application/pdf') {
-      setSelectedProofFile({ leaveId, file });
-    } else {
-      alert("Please select a PDF file");
+    if (file) {
+      if (file.type === 'application/pdf') {
+        setSelectedProofFile({ leaveId, file });
+      } else {
+        alert("Please select a PDF file only");
+      }
     }
   };
 
+  // FIXED: PDF Upload function with proper error handling
   const handleProofUpload = async (leaveId) => {
     if (!selectedProofFile || selectedProofFile.leaveId !== leaveId) {
       alert("Please select a PDF file first");
@@ -87,43 +87,64 @@ const ParentDashboard = () => {
       const formData = new FormData();
       formData.append('proof', selectedProofFile.file);
       
+      console.log("Uploading proof for leave:", leaveId);
       const res = await uploadProof(token, leaveId, formData);
+      
       alert(res.msg || "Proof uploaded successfully");
       
+      // Reset file selection
       setSelectedProofFile(null);
+      // Refresh leaves list
       fetchLeaves();
     } catch (err) {
-      console.error(err);
-      alert(err.message || "Error uploading proof");
+      console.error("Proof upload error:", err);
+      // Handle different types of error responses
+      if (err.response && err.response.data) {
+        alert(err.response.data.msg || "Error uploading proof");
+      } else if (err.message) {
+        alert(err.message);
+      } else {
+        alert("Error uploading proof. Please try again.");
+      }
     } finally {
       setUploadingProof(prev => ({ ...prev, [leaveId]: false }));
     }
   };
 
-  // Filter leaves based on active tab
+  // FIXED: Filter leaves based on active tab - Enhanced filtering
   const filteredLeaves = leaves.filter(leave => {
     if (activeTab === "all") return true;
     if (activeTab === "pending") return leave.status === "pending";
     if (activeTab === "arrival") return leave.status === "warden_approved" && !leave.arrival_timestamp;
     if (activeTab === "proof") return canUploadProof(leave);
+    if (activeTab === "approved") return leave.status === "parent_approved" || leave.status === "advisor_approved" || leave.status === "warden_approved";
+    if (activeTab === "completed") return leave.status === "completed";
+    if (activeTab === "rejected") return leave.status === "rejected";
     return true;
   });
 
-  // Statistics
+  // FIXED: Enhanced Statistics
   const stats = {
     total: leaves.length,
     pending: leaves.filter(l => l.status === "pending").length,
     arrival: leaves.filter(l => l.status === "warden_approved" && !l.arrival_timestamp).length,
     proof: leaves.filter(canUploadProof).length,
     emergency: leaves.filter(l => l.type === "emergency").length,
-    normal: leaves.filter(l => l.type === "normal").length
+    normal: leaves.filter(l => l.type === "normal").length,
+    approved: leaves.filter(l => l.status === "parent_approved" || l.status === "advisor_approved" || l.status === "warden_approved").length,
+    completed: leaves.filter(l => l.status === "completed").length,
+    rejected: leaves.filter(l => l.status === "rejected").length
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
       case 'pending': return '⏳';
-      case 'warden_approved': return '✅';
-      case 'completed': return '';
+      case 'parent_approved': return '✅';
+      case 'advisor_approved': return '📚';
+      case 'warden_approved': return '🏠';
+      case 'completed': return '🎉';
+      case 'rejected': return '❌';
+      case 'emergency_pending': return '🚨';
       default: return '📝';
     }
   };
@@ -136,13 +157,35 @@ const ParentDashboard = () => {
     const statusMap = {
       pending: "Pending Your Approval",
       parent_approved: "Approved by You",
-      advisor_approved: "Approved by Advisor", 
+      advisor_approved: "With Advisor", 
       warden_approved: "Approved - Confirm Arrival",
+      emergency_pending: "Emergency - With Warden",
       meeting_scheduled: "Meeting Scheduled",
       rejected: "Rejected",
       completed: "Completed"
     };
     return statusMap[status] || status;
+  };
+
+  // Safe date formatting
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Invalid Date';
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid Date';
+    }
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'Not available';
+    try {
+      return new Date(dateString).toLocaleString();
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid Date';
+    }
   };
 
   return (
@@ -228,6 +271,12 @@ const ParentDashboard = () => {
                   >
                     Proof ({stats.proof})
                   </button>
+                  <button 
+                    className={`tab-btn ${activeTab === 'approved' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('approved')}
+                  >
+                    Approved ({stats.approved})
+                  </button>
                 </div>
               </div>
 
@@ -242,7 +291,7 @@ const ParentDashboard = () => {
                   <h3>No leave requests</h3>
                   <p>{
                     activeTab === 'all' 
-                      ? "No pending leave requests from your child."
+                      ? "No leave requests from your child."
                       : `No ${activeTab} leave requests found.`
                   }</p>
                 </div>
@@ -258,6 +307,9 @@ const ParentDashboard = () => {
                           <div className="student-roll">
                             Roll No: {leave.student_rollno}
                           </div>
+                          <div className="student-details">
+                            {leave.branch_name} - Division {leave.student_division}
+                          </div>
                         </div>
                         <div className="leave-type-status">
                           <span className={`type-badge ${leave.type}`}>
@@ -270,28 +322,37 @@ const ParentDashboard = () => {
                       </div>
                       
                       <div className="leave-reason">
-                        {leave.reason}
+                        <strong>Reason:</strong> {leave.reason}
                       </div>
                       
                       <div className="leave-dates">
                         <span className="date-range">
-                          📅 {new Date(leave.start_date).toLocaleDateString()} → {new Date(leave.end_date).toLocaleDateString()}
+                          📅 {formatDate(leave.start_date)} → {formatDate(leave.end_date)}
                         </span>
                         <span className="duration">
-                          ({Math.ceil((new Date(leave.end_date) - new Date(leave.start_date)) / (1000 * 60 * 60 * 24)) + 1} days)
+                          {leave.start_date && leave.end_date ? (
+                            `(${Math.ceil((new Date(leave.end_date) - new Date(leave.start_date)) / (1000 * 60 * 60 * 24)) + 1} days)`
+                          ) : ''}
                         </span>
                       </div>
 
                       {/* Additional Information */}
                       <div className="leave-meta">
                         <span className="meta-item">
-                          🕒 Applied: {new Date(leave.created_at).toLocaleDateString()}
+                          🕒 Applied: {formatDate(leave.created_at)}
                         </span>
+                        
+                        {/* Show arrival timestamp if available */}
+                        {leave.arrival_timestamp && (
+                          <span className="meta-item arrival">
+                            🎉 Arrival confirmed: {formatDateTime(leave.arrival_timestamp)}
+                          </span>
+                        )}
                         
                         {/* Show meeting details if scheduled */}
                         {leave.meeting_scheduled && leave.meeting_date && (
                           <span className="meta-item meeting">
-                            📅 Meeting: {new Date(leave.meeting_date).toLocaleString()}
+                            📅 Meeting: {formatDateTime(leave.meeting_date)}
                           </span>
                         )}
                         
@@ -304,9 +365,9 @@ const ParentDashboard = () => {
                         
                         {/* Show proof status */}
                         {leave.proof_submitted && (
-                          <span className="meta-item proof-submitted">
-                            📎 Proof submitted on {new Date(leave.proof_submitted_at).toLocaleDateString()}
-                            {leave.proof_verified && " ✅ Verified"}
+                          <span className={`meta-item proof ${leave.proof_verified ? 'verified' : 'submitted'}`}>
+                            📎 Proof {leave.proof_verified ? '✅ Verified' : '📤 Submitted'}
+                            {leave.proof_verified_at && ` on ${formatDate(leave.proof_verified_at)}`}
                           </span>
                         )}
                       </div>
@@ -348,7 +409,7 @@ const ParentDashboard = () => {
                         {leave.arrival_timestamp && (
                           <div className="action-completed">
                             <span className="success-text">
-                              ✅ Arrival confirmed on {new Date(leave.arrival_timestamp).toLocaleString()}
+                              ✅ Arrival confirmed on {formatDateTime(leave.arrival_timestamp)}
                             </span>
                           </div>
                         )}
@@ -367,6 +428,7 @@ const ParentDashboard = () => {
                                 accept=".pdf"
                                 onChange={(e) => handleProofFileSelect(leave.id, e.target.files[0])}
                                 className="file-input"
+                                id={`proof-file-${leave.id}`}
                               />
                               <button 
                                 className="btn btn-success" 
@@ -379,7 +441,7 @@ const ParentDashboard = () => {
                             
                             {selectedProofFile && selectedProofFile.leaveId === leave.id && (
                               <div className="file-selected">
-                                Selected: {selectedProofFile.file.name}
+                                ✅ Selected: {selectedProofFile.file.name}
                               </div>
                             )}
                           </div>
@@ -419,18 +481,46 @@ const ParentDashboard = () => {
                   <div className="summary-label">Need Proof Upload</div>
                   <div className="summary-value proof">{stats.proof}</div>
                 </div>
+                <div className="summary-item">
+                  <div className="summary-label">Completed Leaves</div>
+                  <div className="summary-value completed">{stats.completed}</div>
+                </div>
               </div>
             </div>
 
             <div className="dashboard-card">
               <div className="card-header">
-                <h2>SMS Notifications</h2>
+                <h2>📱 SMS Notifications</h2>
               </div>
               <div className="notification-note">
                 <div className="info-icon">💡</div>
                 <div className="info-content">
                   <strong>Real-time Updates</strong>
                   <p>You'll receive SMS alerts for all important updates about your child's leave status.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="dashboard-card">
+              <div className="card-header">
+                <h2>ℹ️ Leave Status Guide</h2>
+              </div>
+              <div className="status-guide">
+                <div className="guide-item">
+                  <span className="guide-icon">⏳</span>
+                  <span className="guide-text">Pending - Needs your approval</span>
+                </div>
+                <div className="guide-item">
+                  <span className="guide-icon">✅</span>
+                  <span className="guide-text">Approved - Confirm arrival when child returns</span>
+                </div>
+                <div className="guide-item">
+                  <span className="guide-icon">📎</span>
+                  <span className="guide-text">Proof Required - Upload emergency leave documents</span>
+                </div>
+                <div className="guide-item">
+                  <span className="guide-icon">🎉</span>
+                  <span className="guide-text">Completed - Leave process finished</span>
                 </div>
               </div>
             </div>

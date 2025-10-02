@@ -120,18 +120,28 @@ export const getQRCode = async (token, leaveId) => {
   return handleResponse(res);
 };
 
-// NEW FUNCTIONS FOR ENHANCED FEATURES
-
+// FIXED: uploadProof function - using API_URL and correct endpoint
 export const uploadProof = async (token, leaveId, formData) => {
-  const res = await fetch(`${API_URL}/leave/${leaveId}/upload-proof`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      // Don't set Content-Type for FormData, let browser set it with boundary
-    },
-    body: formData,
-  });
-  return handleResponse(res);
+  try {
+    const response = await fetch(`${API_URL}/leave/${leaveId}/upload-proof`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        // NOTE: Don't set Content-Type for FormData - browser will set it automatically with boundary
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.msg || 'Upload failed');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Upload proof error:', error);
+    throw error;
+  }
 };
 
 export const verifyProof = async (token, leaveId, verificationData) => {

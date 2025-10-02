@@ -5,6 +5,13 @@ import authRoutes from "./routes/authRoutes.js";
 import leaveRoutes from "./routes/leaveRoutes.js";
 import { initDatabase } from "./database/init.js";
 import db from "./config/db.js";
+import path from "path";
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -15,6 +22,23 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// IMPORTANT: Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+const proofsDir = path.join(__dirname, 'uploads', 'proofs');
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('✅ Created uploads directory');
+}
+
+if (!fs.existsSync(proofsDir)) {
+  fs.mkdirSync(proofsDir, { recursive: true });
+  console.log('✅ Created uploads/proofs directory');
+}
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Initialize database on startup
 initDatabase().then(() => {

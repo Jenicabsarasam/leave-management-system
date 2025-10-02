@@ -1,6 +1,7 @@
 // backend/controllers/leaveController.js
 import QRCode from "qrcode";
 import db from "../config/db.js";
+import fs from 'fs';
 
 // ---------------------- Student applies ----------------------
 export const applyLeave = async (req, res) => {
@@ -470,12 +471,18 @@ export const wardenEmergencyApprove = async (req, res) => {
     });
   }
 };
-
-// ---------------------- Upload Proof File ----------------------
+//---------Upload Proof ----------
+// In leaveController.js - uploadProof function
+// In leaveController.js - uploadProof function
+// In leaveController.js - uploadProof function
 export const uploadProof = async (req, res) => {
   const leaveId = parseInt(req.params.id);
   
   try {
+    console.log('📋 Upload proof request for leave:', leaveId);
+    console.log('👤 User ID:', req.user.id);
+    console.log('📄 File info:', req.file);
+
     // Check if leave exists and parent is authorized
     const checkQuery = `
       SELECT l.*
@@ -489,39 +496,59 @@ export const uploadProof = async (req, res) => {
     
     const check = await db.query(checkQuery, [leaveId, req.user.id]);
     
-    if (check.rows.length === 0) 
+    if (check.rows.length === 0) {
+      console.log('❌ Leave not found or unauthorized');
       return res.status(404).json({ msg: "Leave not found or unauthorized" });
+    }
     
     const leave = check.rows[0];
+    console.log('📝 Leave found:', leave.id, 'Status:', leave.status, 'Type:', leave.type);
     
     // Only allow proof upload for emergency leaves that are completed
     if (leave.type !== 'emergency' || leave.status !== 'completed') {
-      return res.status(400).json({ msg: "Proof can only be uploaded for completed emergency leaves" });
+      console.log('❌ Invalid leave type or status for proof upload');
+      return res.status(400).json({ 
+        msg: "Proof can only be uploaded for completed emergency leaves. Current status: " + leave.status 
+      });
     }
 
     if (!req.file) {
+      console.log('❌ No file uploaded');
       return res.status(400).json({ msg: "Proof file is required" });
     }
 
-    // Save file path to database
+    // Verify file actually exists on disk - FIXED: Use ES modules import
+    
+    if (!fs.existsSync(req.file.path)) {
+      console.log('❌ File not found on disk:', req.file.path);
+      return res.status(500).json({ msg: "File upload failed - file not saved correctly" });
+    }
+
+    console.log('✅ File verified on disk:', req.file.path);
+
+    // Save file path to database - use relative path for web access
     const filePath = `/uploads/proofs/${req.file.filename}`;
     
+    console.log('💾 Saving to database - filePath:', filePath);
+    
     const updateResult = await db.query(
-      `UPDATE leaves SET proof_file_path=$1, proof_submitted=true WHERE id=$2 RETURNING *`,
-      [filePath, leaveId]
+      `UPDATE leaves SET proof_file_path=$1, proof_submitted=true, proof_submitted_at=$2 WHERE id=$3 RETURNING *`,
+      [filePath, new Date().toISOString(), leaveId]
     );
+
+    console.log('✅ Proof uploaded successfully for leave:', leaveId);
 
     res.json({ 
       msg: "Proof uploaded successfully", 
       leave: updateResult.rows[0],
-      filePath: filePath
+      filePath: filePath,
+      fileUrl: `http://localhost:5000${filePath}`
     });
   } catch (err) {
-    console.error('Error in uploadProof:', err);
-    res.status(500).json({ msg: "Server error during proof upload" });
+    console.error('💥 Error in uploadProof:', err);
+    res.status(500).json({ msg: "Server error during proof upload: " + err.message });
   }
 };
-
 // ---------------------- Verify Proof ----------------------
 export const verifyProof = async (req, res) => {
   const leaveId = parseInt(req.params.id);
