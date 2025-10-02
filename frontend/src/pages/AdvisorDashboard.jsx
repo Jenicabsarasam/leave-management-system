@@ -7,19 +7,25 @@ import { advisorReview, getLeaves, getStudentsSummary, verifyProof } from "../ap
 const AdvisorDashboard = () => {
   const [activeTab, setActiveTab] = useState("pending");
   const [leaves, setLeaves] = useState([]);
+  const [allLeaves, setAllLeaves] = useState([]); // Store all leaves for filtering
   const [studentsSummary, setStudentsSummary] = useState([]);
   const [recentLeaves, setRecentLeaves] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedLeave, setSelectedLeave] = useState(null);
+  const [viewingProof, setViewingProof] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [verificationComments, setVerificationComments] = useState({});
   const token = localStorage.getItem("token");
 
   const fetchData = async () => {
     try {
       setLoading(true);
       
-      // Fetch pending leaves
+      // Fetch ALL leaves for advisor (not just pending)
       const leavesData = await getLeaves(token);
+      setAllLeaves(leavesData.leaves || []);
+      
+      // Filter pending leaves for the pending tab
       const pendingLeaves = (leavesData.leaves || []).filter(l => 
         l.status === "parent_approved" || l.status === "pending"
       );
@@ -54,8 +60,10 @@ const AdvisorDashboard = () => {
 
   const handleVerifyProof = async (leaveId, verified) => {
     try {
-      const res = await verifyProof(token, leaveId, { verified });
+      const comments = verificationComments[leaveId] || '';
+      const res = await verifyProof(token, leaveId, { verified, comments });
       alert(res.msg || `Proof ${verified ? 'verified' : 'rejected'}`);
+      setVerificationComments(prev => ({ ...prev, [leaveId]: '' }));
       fetchData();
     } catch (err) {
       console.error(err);
@@ -63,14 +71,43 @@ const AdvisorDashboard = () => {
     }
   };
 
-  // Statistics
+  const handleViewProof = (leave) => {
+    if (leave.proof_file_path) {
+      const proofUrl = `http://localhost:5000${leave.proof_file_path}`;
+      setViewingProof({
+        leaveId: leave.id,
+        studentName: leave.student_name,
+        fileName: leave.proof_file_path.split('/').pop(),
+        url: proofUrl
+      });
+    }
+  };
+
+  // Enhanced Statistics
   const stats = {
     totalStudents: studentsSummary.length,
-    totalLeaves: studentsSummary.reduce((sum, student) => sum + (student.total_leaves || 0), 0),
-    emergencyLeaves: studentsSummary.reduce((sum, student) => sum + (student.emergency_leaves || 0), 0),
+    totalLeaves: allLeaves.length,
+    emergencyLeaves: allLeaves.filter(l => l.type === 'emergency').length,
     pendingReviews: leaves.length,
-    proofsSubmitted: studentsSummary.reduce((sum, student) => sum + (student.proofs_submitted || 0), 0),
-    proofsVerified: studentsSummary.reduce((sum, student) => sum + (student.proofs_verified || 0), 0)
+    proofsSubmitted: allLeaves.filter(l => l.proof_submitted).length,
+    proofsVerified: allLeaves.filter(l => l.proof_verified).length,
+    proofsPendingVerification: allLeaves.filter(l => l.proof_submitted && !l.proof_verified).length
+  };
+
+  // Enhanced filtering for different tabs
+  const getFilteredLeaves = () => {
+    switch (activeTab) {
+      case "pending":
+        return leaves; // Already filtered for pending reviews
+      case "proofs":
+        return allLeaves.filter(leave => leave.proof_submitted);
+      case "emergency":
+        return allLeaves.filter(leave => leave.type === 'emergency');
+      case "all":
+        return allLeaves;
+      default:
+        return allLeaves;
+    }
   };
 
   const getStatusIcon = (status) => {
@@ -80,6 +117,8 @@ const AdvisorDashboard = () => {
       case 'advisor_approved': return '📚';
       case 'warden_approved': return '🏠';
       case 'completed': return '🏁';
+      case 'rejected': return '❌';
+      case 'emergency_pending': return '🚨';
       default: return '📝';
     }
   };
@@ -101,6 +140,13 @@ const AdvisorDashboard = () => {
     };
     return statusMap[status] || status;
   };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  const filteredLeaves = getFilteredLeaves();
 
   return (
     <div className="dashboard-container">
@@ -148,13 +194,13 @@ const AdvisorDashboard = () => {
           <div className="stat-card">
             <div className="stat-icon">📎</div>
             <div className="stat-info">
-              <div className="stat-number">{stats.proofsSubmitted}</div>
-              <div className="stat-label">Proofs Submitted</div>
+              <div className="stat-number">{stats.proofsPendingVerification}</div>
+              <div className="stat-label">Proofs to Verify</div>
             </div>
           </div>
         </div>
 
-        {/* Tab Navigation */}
+        {/* Enhanced Tab Navigation */}
         <div className="dashboard-tabs">
           <button 
             className={`tab-btn ${activeTab === "pending" ? "active" : ""}`}
@@ -163,16 +209,28 @@ const AdvisorDashboard = () => {
             📋 Pending Reviews ({stats.pendingReviews})
           </button>
           <button 
+            className={`tab-btn ${activeTab === "proofs" ? "active" : ""}`}
+            onClick={() => setActiveTab("proofs")}
+          >
+            📎 Proofs to Verify ({stats.proofsPendingVerification})
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === "emergency" ? "active" : ""}`}
+            onClick={() => setActiveTab("emergency")}
+          >
+            🚨 Emergency Leaves ({stats.emergencyLeaves})
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === "all" ? "active" : ""}`}
+            onClick={() => setActiveTab("all")}
+          >
+            📊 All Leaves ({stats.totalLeaves})
+          </button>
+          <button 
             className={`tab-btn ${activeTab === "students" ? "active" : ""}`}
             onClick={() => setActiveTab("students")}
           >
-            👥 Students Summary ({stats.totalStudents})
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === "reports" ? "active" : ""}`}
-            onClick={() => setActiveTab("reports")}
-          >
-            📊 Reports & Analytics
+            👥 Students ({stats.totalStudents})
           </button>
         </div>
 
@@ -192,7 +250,7 @@ const AdvisorDashboard = () => {
                     <div className="loading-spinner"></div>
                     <p>Loading pending leaves...</p>
                   </div>
-                ) : leaves.length === 0 ? (
+                ) : filteredLeaves.length === 0 ? (
                   <div className="empty-state">
                     <div className="empty-icon">✅</div>
                     <h3>All caught up!</h3>
@@ -200,7 +258,7 @@ const AdvisorDashboard = () => {
                   </div>
                 ) : (
                   <div className="leaves-list">
-                    {leaves.map(leave => (
+                    {filteredLeaves.map(leave => (
                       <div key={leave.id} className="leave-card">
                         <div className="leave-header">
                           <div className="student-info">
@@ -209,9 +267,6 @@ const AdvisorDashboard = () => {
                             </div>
                             <div className="student-details">
                               Roll No: {leave.student_rollno} • {leave.branch_name} - Division {leave.student_division}
-                            </div>
-                            <div className="student-hostel">
-                              🏠 {leave.hostel_name}
                             </div>
                           </div>
                           <div className="leave-type-status">
@@ -225,12 +280,12 @@ const AdvisorDashboard = () => {
                         </div>
                         
                         <div className="leave-reason">
-                          {leave.reason}
+                          <strong>Reason:</strong> {leave.reason}
                         </div>
                         
                         <div className="leave-dates">
                           <span className="date-range">
-                            📅 {new Date(leave.start_date).toLocaleDateString()} → {new Date(leave.end_date).toLocaleDateString()}
+                            📅 {formatDate(leave.start_date)} → {formatDate(leave.end_date)}
                           </span>
                           <span className="duration">
                             ({Math.ceil((new Date(leave.end_date) - new Date(leave.start_date)) / (1000 * 60 * 60 * 24)) + 1} days)
@@ -239,8 +294,13 @@ const AdvisorDashboard = () => {
 
                         <div className="leave-meta">
                           <span className="meta-item">
-                            🕒 Applied: {new Date(leave.created_at).toLocaleDateString()}
+                            🕒 Applied: {formatDate(leave.created_at)}
                           </span>
+                          {leave.parent_name && (
+                            <span className="meta-item">
+                              👨‍👩‍👧 Parent: {leave.parent_name}
+                            </span>
+                          )}
                         </div>
 
                         <div className="leave-actions">
@@ -272,6 +332,267 @@ const AdvisorDashboard = () => {
                             </div>
                           )}
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Proofs Tab */}
+            {activeTab === "proofs" && (
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h2>Proofs Awaiting Verification</h2>
+                  <div className="card-badge proofs">{stats.proofsPendingVerification} to Verify</div>
+                </div>
+
+                {loading ? (
+                  <div className="loading-state">
+                    <div className="loading-spinner"></div>
+                    <p>Loading proofs...</p>
+                  </div>
+                ) : filteredLeaves.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-icon">✅</div>
+                    <h3>All proofs verified!</h3>
+                    <p>No proofs pending verification.</p>
+                  </div>
+                ) : (
+                  <div className="leaves-list">
+                    {filteredLeaves
+                      .filter(leave => leave.proof_submitted && !leave.proof_verified)
+                      .map(leave => (
+                      <div key={leave.id} className="leave-card proof-card">
+                        <div className="leave-header">
+                          <div className="student-info">
+                            <div className="student-name">
+                              👤 {leave.student_name}
+                            </div>
+                            <div className="student-details">
+                              Roll No: {leave.student_rollno} • Emergency Leave
+                            </div>
+                          </div>
+                          <div className="proof-status-badge">
+                            <span className="badge proof-pending">📎 Proof Submitted</span>
+                            <span className="badge proof-date">
+                              {formatDate(leave.proof_submitted_at)}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="leave-reason">
+                          <strong>Leave Reason:</strong> {leave.reason}
+                        </div>
+
+                        <div className="proof-actions">
+                          <div className="proof-view-section">
+                            <button 
+                              className="btn btn-outline"
+                              onClick={() => handleViewProof(leave)}
+                            >
+                              👁️ View Proof PDF
+                            </button>
+                            <span className="file-info">
+                              {leave.proof_file_path?.split('/').pop()}
+                            </span>
+                          </div>
+
+                          <div className="verification-section">
+                            <div className="verification-prompt">
+                              <strong>Verify this proof:</strong>
+                            </div>
+                            <div className="comment-section">
+                              <textarea
+                                placeholder="Add verification comments (optional)..."
+                                value={verificationComments[leave.id] || ''}
+                                onChange={(e) => setVerificationComments(prev => ({
+                                  ...prev,
+                                  [leave.id]: e.target.value
+                                }))}
+                                className="form-input"
+                                rows="2"
+                              />
+                            </div>
+                            <div className="verification-buttons">
+                              <button 
+                                className="btn btn-success" 
+                                onClick={() => handleVerifyProof(leave.id, true)}
+                              >
+                                ✅ Verify Proof
+                              </button>
+                              <button 
+                                className="btn btn-danger" 
+                                onClick={() => handleVerifyProof(leave.id, false)}
+                              >
+                                ❌ Reject Proof
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Emergency Leaves Tab */}
+            {activeTab === "emergency" && (
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h2>Emergency Leaves</h2>
+                  <div className="card-badge emergency">{stats.emergencyLeaves} Total</div>
+                </div>
+
+                {loading ? (
+                  <div className="loading-state">
+                    <div className="loading-spinner"></div>
+                    <p>Loading emergency leaves...</p>
+                  </div>
+                ) : filteredLeaves.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-icon">🚨</div>
+                    <h3>No emergency leaves</h3>
+                    <p>No emergency leave requests found.</p>
+                  </div>
+                ) : (
+                  <div className="leaves-list">
+                    {filteredLeaves.map(leave => (
+                      <div key={leave.id} className="leave-card emergency-card">
+                        <div className="leave-header">
+                          <div className="student-info">
+                            <div className="student-name">
+                              👤 {leave.student_name}
+                            </div>
+                            <div className="student-details">
+                              Roll No: {leave.student_rollno} • {leave.branch_name}
+                            </div>
+                          </div>
+                          <div className="leave-type-status">
+                            <span className={`status-badge ${leave.status}`}>
+                              {getStatusIcon(leave.status)} {getStatusBadge(leave.status)}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="leave-reason">
+                          <strong>Emergency Reason:</strong> {leave.reason}
+                        </div>
+                        
+                        <div className="leave-dates">
+                          <span className="date-range">
+                            📅 {formatDate(leave.start_date)} → {formatDate(leave.end_date)}
+                          </span>
+                        </div>
+
+                        <div className="leave-meta">
+                          <span className="meta-item">
+                            🕒 Applied: {formatDate(leave.created_at)}
+                          </span>
+                          {leave.warden_comments && (
+                            <span className="meta-item comments">
+                              💬 Warden: {leave.warden_comments}
+                            </span>
+                          )}
+                          {leave.proof_submitted && (
+                            <span className={`meta-item proof ${leave.proof_verified ? 'verified' : 'submitted'}`}>
+                              📎 Proof {leave.proof_verified ? '✅ Verified' : '📤 Submitted'}
+                              {leave.proof_submitted_at && ` on ${formatDate(leave.proof_submitted_at)}`}
+                            </span>
+                          )}
+                        </div>
+
+                        {leave.proof_submitted && !leave.proof_verified && (
+                          <div className="proof-actions">
+                            <button 
+                              className="btn btn-outline btn-small"
+                              onClick={() => handleViewProof(leave)}
+                            >
+                              👁️ View Proof
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* All Leaves Tab */}
+            {activeTab === "all" && (
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h2>All Leaves</h2>
+                  <div className="card-badge all">{stats.totalLeaves} Total</div>
+                </div>
+
+                {loading ? (
+                  <div className="loading-state">
+                    <div className="loading-spinner"></div>
+                    <p>Loading all leaves...</p>
+                  </div>
+                ) : filteredLeaves.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-icon">📝</div>
+                    <h3>No leaves found</h3>
+                    <p>No leave requests in the system.</p>
+                  </div>
+                ) : (
+                  <div className="leaves-list">
+                    {filteredLeaves.map(leave => (
+                      <div key={leave.id} className={`leave-card ${leave.type}-card`}>
+                        <div className="leave-header">
+                          <div className="student-info">
+                            <div className="student-name">
+                              👤 {leave.student_name}
+                            </div>
+                            <div className="student-details">
+                              Roll No: {leave.student_rollno} • {leave.branch_name}
+                            </div>
+                          </div>
+                          <div className="leave-type-status">
+                            <span className={`type-badge ${leave.type}`}>
+                              {getTypeIcon(leave.type)} {leave.type === 'emergency' ? 'Emergency' : 'Normal'}
+                            </span>
+                            <span className={`status-badge ${leave.status}`}>
+                              {getStatusIcon(leave.status)} {getStatusBadge(leave.status)}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="leave-reason">
+                          <strong>Reason:</strong> {leave.reason}
+                        </div>
+                        
+                        <div className="leave-dates">
+                          <span className="date-range">
+                            📅 {formatDate(leave.start_date)} → {formatDate(leave.end_date)}
+                          </span>
+                        </div>
+
+                        <div className="leave-meta">
+                          <span className="meta-item">
+                            🕒 Applied: {formatDate(leave.created_at)}
+                          </span>
+                          {leave.proof_submitted && (
+                            <span className={`meta-item proof ${leave.proof_verified ? 'verified' : 'submitted'}`}>
+                              📎 {leave.proof_verified ? '✅ Verified' : 'Proof Submitted'}
+                            </span>
+                          )}
+                        </div>
+
+                        {leave.proof_submitted && (
+                          <div className="proof-actions">
+                            <button 
+                              className="btn btn-outline btn-small"
+                              onClick={() => handleViewProof(leave)}
+                            >
+                              👁️ View Proof
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -333,62 +654,6 @@ const AdvisorDashboard = () => {
                 </div>
               </div>
             )}
-
-            {/* Reports Tab */}
-            {activeTab === "reports" && (
-              <div className="dashboard-card">
-                <div className="card-header">
-                  <h2>Reports & Analytics</h2>
-                  <div className="card-badge reports">AI Powered</div>
-                </div>
-
-                <div className="reports-grid">
-                  <div className="report-card">
-                    <div className="report-icon">📊</div>
-                    <div className="report-content">
-                      <h3>Monthly Leave Report</h3>
-                      <p>Comprehensive analysis of all leave requests for the current month</p>
-                      <button className="btn btn-primary btn-full">Generate Report</button>
-                    </div>
-                  </div>
-
-                  <div className="report-card">
-                    <div className="report-icon">🚨</div>
-                    <div className="report-content">
-                      <h3>Emergency Leave Analysis</h3>
-                      <p>Detailed breakdown of emergency leave patterns and trends</p>
-                      <button className="btn btn-outline btn-full">View Analysis</button>
-                    </div>
-                  </div>
-
-                  <div className="report-card">
-                    <div className="report-icon">📎</div>
-                    <div className="report-content">
-                      <h3>Proof Submission Report</h3>
-                      <p>Track proof submission rates and verification status</p>
-                      <button className="btn btn-outline btn-full">Generate Report</button>
-                    </div>
-                  </div>
-
-                  <div className="report-card">
-                    <div className="report-icon">👥</div>
-                    <div className="report-content">
-                      <h3>Student Attendance Analytics</h3>
-                      <p>Academic impact analysis of student leaves</p>
-                      <button className="btn btn-outline btn-full">View Analytics</button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="ai-note">
-                  <div className="info-icon">🤖</div>
-                  <div className="info-content">
-                    <strong>AI-Powered Insights</strong>
-                    <p>Advanced analytics and predictive insights coming soon to help you identify patterns and make data-driven decisions.</p>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Sidebar - Quick Stats */}
@@ -422,8 +687,8 @@ const AdvisorDashboard = () => {
                 <div className="quick-stat">
                   <div className="quick-stat-icon">📎</div>
                   <div className="quick-stat-info">
-                    <div className="quick-stat-value">{stats.proofsSubmitted}</div>
-                    <div className="quick-stat-label">Proofs Submitted</div>
+                    <div className="quick-stat-value">{stats.proofsPendingVerification}</div>
+                    <div className="quick-stat-label">Proofs to Verify</div>
                   </div>
                 </div>
               </div>
@@ -441,10 +706,10 @@ const AdvisorDashboard = () => {
                     </div>
                     <div className="activity-content">
                       <div className="activity-text">
-                        {leave.student_name} - {leave.reason}
+                        {leave.student_name} - {leave.reason.substring(0, 30)}...
                       </div>
                       <div className="activity-meta">
-                        {new Date(leave.created_at).toLocaleDateString()} • {getStatusBadge(leave.status)}
+                        {formatDate(leave.created_at)} • {getStatusBadge(leave.status)}
                       </div>
                     </div>
                   </div>
@@ -459,6 +724,54 @@ const AdvisorDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Proof Viewer Modal */}
+      {viewingProof && (
+        <div className="modal-overlay">
+          <div className="modal-content large-modal">
+            <div className="modal-header">
+              <h2>Proof Document - {viewingProof.studentName}</h2>
+              <button className="modal-close" onClick={() => setViewingProof(null)}>×</button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="proof-viewer">
+                <div className="proof-info">
+                  <p><strong>File:</strong> {viewingProof.fileName}</p>
+                  <p><strong>Student:</strong> {viewingProof.studentName}</p>
+                </div>
+                
+                <div className="pdf-viewer">
+                  <iframe 
+                    src={viewingProof.url} 
+                    width="100%" 
+                    height="600px"
+                    title="Proof Document"
+                    style={{ border: '1px solid #ddd', borderRadius: '8px' }}
+                  />
+                </div>
+                
+                <div className="proof-actions-modal">
+                  <a 
+                    href={viewingProof.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="btn btn-primary"
+                  >
+                    📥 Download PDF
+                  </a>
+                  <button 
+                    className="btn btn-outline"
+                    onClick={() => setViewingProof(null)}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Student Detail Modal */}
       {selectedStudent && (
@@ -520,7 +833,7 @@ const AdvisorDashboard = () => {
                         <div className="leave-summary">
                           <div className="leave-reason">{leave.reason}</div>
                           <div className="leave-dates">
-                            {new Date(leave.start_date).toLocaleDateString()} → {new Date(leave.end_date).toLocaleDateString()}
+                            {formatDate(leave.start_date)} → {formatDate(leave.end_date)}
                           </div>
                         </div>
                         <div className="leave-status">
