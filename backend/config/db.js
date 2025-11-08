@@ -6,7 +6,7 @@ const pool = new Pool({
   user: 'postgres',                    // Your PostgreSQL username
   host: 'localhost',
   database: 'leave_management', 
-  password: 'Jeni@2004',    // ← Replace with your actual password
+  password: 'postgres',    // ← Replace with your actual password
   port: 5432,
 });
 

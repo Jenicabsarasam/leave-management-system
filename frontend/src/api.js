@@ -1,5 +1,5 @@
 // frontend/src/api.js
-const API_URL = "http://localhost:5000";
+const API_URL = "http://localhost:5050";
 
 // Helper function to handle API responses
 const handleResponse = async (response) => {

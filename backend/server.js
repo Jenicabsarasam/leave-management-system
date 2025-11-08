@@ -17,9 +17,11 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // CORS configuration
+
 app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true
+  origin: "http://localhost:5173", // 👈 your frontend URL
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  credentials: true                // 👈 if you send cookies or tokens
 }));
 
 app.use(express.json());
@@ -76,5 +78,5 @@ app.get("/health", async (req, res) => {
   }
 });
 
-const PORT = 5000;
+const PORT = 5050;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
