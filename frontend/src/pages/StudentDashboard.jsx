@@ -8,7 +8,12 @@ const StudentDashboard = () => {
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const token = localStorage.getItem("token");
+
+  // Get today's date in YYYY-MM-DD format for date input min attribute
+  const today = new Date().toISOString().split('T')[0];
 
   const fetchLeaves = async () => {
     try {
@@ -27,19 +32,44 @@ const StudentDashboard = () => {
     fetchLeaves();
   }, []);
 
+  const validateDates = (start, end) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time part for accurate date comparison
+
+    if (startDate < today) {
+      alert("Cannot select past dates for leave request");
+      return false;
+    }
+
+    if (endDate < startDate) {
+      alert("End date must be after or equal to start date");
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const leaveData = {
+    const formData = {
       reason: e.target.reason.value,
       startDate: e.target.from.value,
       endDate: e.target.to.value,
       type: e.target.leaveType.value
     };
 
+    if (!validateDates(formData.startDate, formData.endDate)) {
+      return;
+    }
+
     try {
-      const res = await applyLeave(token, leaveData);
+      const res = await applyLeave(token, formData);
       alert(res.msg || "Leave applied successfully!");
       e.target.reset();
+      setStartDate("");
+      setEndDate("");
       fetchLeaves();
     } catch (err) {
       console.error(err);
@@ -190,6 +220,9 @@ const StudentDashboard = () => {
                       type="date" 
                       required 
                       className="form-input"
+                      min={today}
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
                     />
                   </div>
                   <div className="form-group">
@@ -201,6 +234,10 @@ const StudentDashboard = () => {
                       type="date" 
                       required 
                       className="form-input"
+                      min={startDate || today}
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      disabled={!startDate}
                     />
                   </div>
                 </div>

@@ -19,6 +19,4 @@ pool.on('error', (err) => {
   console.error('❌ Database connection error:', err);
 });
 
-export default {
-  query: (text, params) => pool.query(text, params),
-};
+export default pool;
