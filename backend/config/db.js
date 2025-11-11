@@ -3,11 +3,11 @@ import pkg from 'pg';
 const { Pool } = pkg;
 
 const pool = new Pool({
-  user: process.env.PGUSER || 'postgres',
-  host: process.env.PGHOST || 'localhost',
-  database: process.env.PGDATABASE || 'Leave-Mangement',
-  password: process.env.PGPASSWORD || '12345',
-  port: process.env.PGPORT ? Number(process.env.PGPORT) : 5433,
+  user: 'postgres',
+  host: 'localhost',
+  database: 'leave_management',
+  password: 'Jeni@2004',
+  port: 5432,
 });
 
 // Test connection
