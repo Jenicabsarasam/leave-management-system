@@ -774,131 +774,48 @@ const AdminDashboard = () => {
 )}
 
             {/* ============================== All Leaves ============================== */}
-            {activeTab === "leaves" && (
-              <div className="dashboard-card">
-                <div className="card-header">
-                  <h2>All Leave Applications</h2>
+            <div className="leave-table-container">
+  <h2>All Leave Applications</h2>
 
-                  <div className="filters">
-                    <select
-                      onChange={(e) =>
-                        fetchFilteredLeaves("status", e.target.value)
-                      }
-                    >
-                      <option value="">All Statuses</option>
-                      <option value="pending">Pending</option>
-                      <option value="approved">Approved</option>
-                      <option value="rejected">Rejected</option>
-                      <option value="emergency_pending">Emergency</option>
-                    </select>
-                  </div>
-                </div>
+  <div className="leave-filters">
+    <select>
+      <option>All Statuses</option>
+      <option>Pending</option>
+      <option>Approved</option>
+      <option>Rejected</option>
+    </select>
+  </div>
 
-                {loading ? (
-                  <div className="loading-state">
-                    <div className="loading-spinner"></div>
-                    <p>Loading leaves...</p>
-                  </div>
-                ) : (
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Student</th>
-                        <th>Branch</th>
-                        <th>Hostel</th>
-                        <th>From - To</th>
-                        <th>Reason</th>
-                        <th>Status</th>
-                        <th>Proof</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
+  <table className="leave-table">
+    <thead>
+      <tr>
+        <th>Student</th>
+        <th>Branch</th>
+        <th>Hostel</th>
+        <th>From - To</th>
+        <th>Reason</th>
+        <th>Status</th>
+        <th>Proof</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>John (123)</td>
+        <td>CSE</td>
+        <td>Nil</td>
+        <td>Nov 9 - Nov 10</td>
+        <td>Holiday</td>
+        <td><span className="status-green">Approved</span></td>
+        <td>No Proof</td>
+        <td><button className="btn btn-danger btn-small">Delete</button></td>
+      </tr>
+    </tbody>
+  </table>
 
-                    <tbody>
-                      {leaves.map((leave) => (
-                        <tr
-                          key={leave.id}
-                          style={{
-                            background:
-                              leave.type === "emergency" ? "#fff1f2" : "transparent",
-                          }}
-                        >
-                          <td>
-                            {leave.student_name}
-                            <br />
-                            ({leave.student_rollno})
-                          </td>
-                          <td>{leave.branch_name}</td>
-                          <td>{leave.hostel_name}</td>
-                          <td>
-                            {leave.start_date} - {leave.end_date}
-                          </td>
-                          <td>{leave.reason}</td>
-                          <td>
-                            <span className={`status-${leave.status}`}>
-                              {leave.status}
-                            </span>
-                          </td>
-                          <td>
-                            {leave.proof_path ? (
-                              <a
-                                href={`${API_URL}/${leave.proof_path}`}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                View
-                              </a>
-                            ) : (
-                              "No Proof"
-                            )}
+  <button className="export-btn">📤 Export to CSV</button>
+</div>
 
-                            {leave.proof_path && !leave.proof_verified && (
-                              <button
-                                className="btn btn-small btn-outline"
-                                onClick={() => handleVerifyProof(leave.id)}
-                              >
-                                ✅ Verify
-                              </button>
-                            )}
-                          </td>
-
-                          <td>
-                            {leave.status === "pending" && (
-                              <>
-                                <button
-                                  className="btn btn-small btn-success"
-                                  onClick={() =>
-                                    handleUpdateLeaveStatus(leave.id, "approved")
-                                  }
-                                >
-                                  Approve
-                                </button>
-
-                                <button
-                                  className="btn btn-small btn-danger"
-                                  onClick={() =>
-                                    handleUpdateLeaveStatus(leave.id, "rejected")
-                                  }
-                                >
-                                  Reject
-                                </button>
-                              </>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-
-                <button
-                  className="btn btn-outline"
-                  onClick={() => exportLeavesToCSV(leaves)}
-                >
-                  📤 Export to CSV
-                </button>
-              </div>
-            )}
 
             {/* ========================== Reports & Analytics ========================== */}
             {activeTab === "reports" && (

@@ -260,42 +260,95 @@
 }
 
 /* =========================== TABLE ============================ */
-.table {
+/* ==================== IMPROVED TABLE STYLING ==================== */
+/* ==================== LEAVE APPLICATION TABLE ==================== */
+.leave-table-container {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  margin: 1.5rem 2rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f0e8e8;
+}
+
+.leave-table-container h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+.leave-filters {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.leave-filters select {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.9rem;
+  background: #fafafa;
+}
+
+/* Polished table */
+.leave-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 1rem;
-  background: white;
-  border-radius: 8px;
   overflow: hidden;
+  border-radius: 10px;
+  background: #fff;
 }
 
-.table th,
-.table td {
-  padding: 0.8rem 1rem;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-}
-
-.table th {
-  background: #fafafa;
-  color: #555;
-  font-weight: 600;
-}
-
-.table tbody tr:hover {
-  background: #fff8f8;
-}
-
-/* =========================== AI SUMMARY ============================ */
-.ai-summary-card {
-  margin-top: 1rem;
+.leave-table th {
+  background: var(--primary);
+  color: white;
   padding: 1rem;
-  background: #fff7f7;
-  border-left: 4px solid var(--primary);
-  border-radius: 8px;
-  color: var(--text);
-  line-height: 1.4;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.95rem;
 }
+
+.leave-table td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #f1f1f1;
+  color: #444;
+}
+
+.leave-table tr:hover {
+  background: #fff5f5;
+  transition: 0.2s;
+}
+
+/* Empty table look */
+.leave-table-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #777;
+  font-style: italic;
+}
+
+/* Export button */
+.export-btn {
+  margin-top: 1rem;
+  display: inline-block;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
+  background: white;
+  transition: all 0.3s;
+}
+
+.export-btn:hover {
+  background: var(--primary);
+  color: white;
+}
+
+
 
 /* =========================== STATUS COLORS ============================ */
 .status-green {
@@ -359,4 +412,92 @@
   .filters select {
     width: 100%;
   }
+}
+
+/* ==================== POLISHED LEAVE APPLICATION TABLE ==================== */
+.leave-table-container {
+  background: #fff;
+  border-radius: 16px;
+  padding: 2rem;
+  margin: 1.5rem 2rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f0e8e8;
+}
+
+.leave-table-container h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+.leave-filters {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.leave-filters select {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.9rem;
+  background: #fafafa;
+  transition: all 0.3s;
+}
+
+.leave-filters select:hover {
+  border-color: var(--primary);
+}
+
+.leave-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.leave-table th {
+  background: var(--primary);
+  color: white;
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.leave-table td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #f1f1f1;
+  color: #333;
+}
+
+.leave-table tr:hover {
+  background: #fff4f4;
+  transition: background 0.2s ease;
+}
+
+.leave-table-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #777;
+  font-style: italic;
+}
+
+.export-btn {
+  margin-top: 1rem;
+  display: inline-block;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
+  background: white;
+  transition: all 0.3s;
+}
+
+.export-btn:hover {
+  background: var(--primary);
+  color: white;
 }
