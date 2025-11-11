@@ -9,7 +9,6 @@ import {
   updateUser,
   deleteUser,
   getAllLeaves,
- 
   bulkImportUsers,
 } from "../api";
 
@@ -26,7 +25,6 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [leaves, setLeaves] = useState([]);
   const [systemStats, setSystemStats] = useState({});
-  
 
   /* ----------------------------- UI Controls ----------------------------- */
   const [selectedUser, setSelectedUser] = useState(null);
@@ -41,20 +39,19 @@ const AdminDashboard = () => {
   const [aiSummary, setAiSummary] = useState("");
 
   /* ---------------------------- Reports States --------------------------- */
-  const [monthlyStats, setMonthlyStats] = useState([]);          // [{ ym, total, approved, rejected, emergency }]
-  const [roleDistribution, setRoleDistribution] = useState([]);  // [{ role, count }]
-  const [branchLeaves, setBranchLeaves] = useState([]);          // [{ branch, leaves }]
-  const [hostelMovement, setHostelMovement] = useState([]);      // [{ hostel, leaves }]
-  const [activityAnalytics, setActivityAnalytics] = useState({   // { mostActiveAdvisors:[], avgApprovalHours:number }
+  const [monthlyStats, setMonthlyStats] = useState([]); // [{ ym, total, approved, rejected, emergency }]
+  const [roleDistribution, setRoleDistribution] = useState([]); // [{ role, count }]
+  const [branchLeaves, setBranchLeaves] = useState([]); // [{ branch, leaves }]
+  const [hostelMovement, setHostelMovement] = useState([]); // [{ hostel, leaves }]
+  const [activityAnalytics, setActivityAnalytics] = useState({
+    // { mostActiveAdvisors:[], avgApprovalHours:number }
     mostActiveAdvisors: [],
-    avgApprovalHours: 0
+    avgApprovalHours: 0,
   });
-  const [compareFrom, setCompareFrom] = useState("");            // YYYY-MM
-  const [compareTo, setCompareTo] = useState("");                // YYYY-MM
-  const [compareResult, setCompareResult] = useState([]);        // [{period:'A'|'B', total, emergency, approved, rejected}]
-  const [anomalies, setAnomalies] = useState([]);                // [{ id, name, leaves, z }]
-
-
+  const [compareFrom, setCompareFrom] = useState(""); // YYYY-MM
+  const [compareTo, setCompareTo] = useState(""); // YYYY-MM
+  const [compareResult, setCompareResult] = useState([]); // [{period:'A'|'B', total, emergency, approved, rejected}]
+  const [anomalies, setAnomalies] = useState([]); // [{ id, name, leaves, z }]
 
   /* ------------------------------ Auth Token ----------------------------- */
   const token = localStorage.getItem("token");
@@ -64,11 +61,7 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
 
-      const [
-        statsData,
-        usersData,
-        leavesData,
-      ] = await Promise.all([
+      const [statsData, usersData, leavesData] = await Promise.all([
         getAdminStats(token),
         getAllUsers(token),
         getAllLeaves(token),
@@ -342,33 +335,27 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
 
-      const [
-        rMonthly,
-        rRoles,
-        rBranches,
-        rHostels,
-        rActivity,
-        rAnoms,
-      ] = await Promise.all([
-        fetch(`${API_URL}/admin/analytics/monthly`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }).then((r) => r.json()),
-        fetch(`${API_URL}/admin/analytics/roles`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }).then((r) => r.json()),
-        fetch(`${API_URL}/admin/analytics/branches`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }).then((r) => r.json()),
-        fetch(`${API_URL}/admin/analytics/hostels`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }).then((r) => r.json()),
-        fetch(`${API_URL}/admin/analytics/activity`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }).then((r) => r.json()),
-        fetch(`${API_URL}/admin/analytics/anomalies`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }).then((r) => r.json()),
-      ]);
+      const [rMonthly, rRoles, rBranches, rHostels, rActivity, rAnoms] =
+        await Promise.all([
+          fetch(`${API_URL}/admin/analytics/monthly`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }).then((r) => r.json()),
+          fetch(`${API_URL}/admin/analytics/roles`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }).then((r) => r.json()),
+          fetch(`${API_URL}/admin/analytics/branches`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }).then((r) => r.json()),
+          fetch(`${API_URL}/admin/analytics/hostels`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }).then((r) => r.json()),
+          fetch(`${API_URL}/admin/analytics/activity`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }).then((r) => r.json()),
+          fetch(`${API_URL}/admin/analytics/anomalies`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }).then((r) => r.json()),
+        ]);
 
       setMonthlyStats(rMonthly.months || []);
       setRoleDistribution(rRoles.roles || []);
@@ -410,7 +397,6 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
-
 
   /* =============================== Render ================================ */
   return (
@@ -461,7 +447,9 @@ const AdminDashboard = () => {
           <div className="stat-card">
             <div className="stat-icon">⏳</div>
             <div className="stat-info">
-              <div className="stat-number">{systemStats.pendingLeaves || 0}</div>
+              <div className="stat-number">
+                {systemStats.pendingLeaves || 0}
+              </div>
               <div className="stat-label">Pending Leaves</div>
             </div>
           </div>
@@ -469,7 +457,9 @@ const AdminDashboard = () => {
           <div className="stat-card">
             <div className="stat-icon">🚨</div>
             <div className="stat-info">
-              <div className="stat-number">{systemStats.emergencyLeaves || 0}</div>
+              <div className="stat-number">
+                {systemStats.emergencyLeaves || 0}
+              </div>
               <div className="stat-label">Emergency Leaves</div>
             </div>
           </div>
@@ -477,16 +467,10 @@ const AdminDashboard = () => {
           <div className="stat-card">
             <div className="stat-icon">🎓</div>
             <div className="stat-info">
-              <div className="stat-number">{systemStats.activeStudents || 0}</div>
+              <div className="stat-number">
+                {systemStats.activeStudents || 0}
+              </div>
               <div className="stat-label">Active Students</div>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon">💾</div>
-            <div className="stat-info">
-              <div className="stat-number">{systemStats.storageUsed || "0GB"}</div>
-              <div className="stat-label">Storage Used</div>
             </div>
           </div>
         </div>
@@ -528,7 +512,6 @@ const AdminDashboard = () => {
         {/* ============================== Grid Columns =========================== */}
         <div className="dashboard-grid">
           <div className="dashboard-column main-content">
-
             {/* ============================= Overview Tab ============================== */}
             {activeTab === "overview" && (
               <div className="dashboard-card">
@@ -555,7 +538,8 @@ const AdminDashboard = () => {
 
                       {aiSummary && (
                         <div className="ai-summary-card">
-                          <b>AI Report Summary:</b><br />
+                          <b>Report Summary:</b>
+                          <br />
                           {aiSummary}
                         </div>
                       )}
@@ -579,8 +563,7 @@ const AdminDashboard = () => {
                             <span className="status-green">Healthy</span>
                           </li>
                           <li>
-                            API{" "}
-                            <span className="status-green">Running</span>
+                            API <span className="status-green">Running</span>
                           </li>
                         </ul>
                       </div>
@@ -589,9 +572,7 @@ const AdminDashboard = () => {
                         <h3>📊 Quick Statistics</h3>
 
                         <ul>
-                          <li>
-                            👥 Total Users: {systemStats.totalUsers || 0}
-                          </li>
+                          <li>👥 Total Users: {systemStats.totalUsers || 0}</li>
                           <li>
                             📋 Total Leaves: {systemStats.totalLeaves || 0}
                           </li>
@@ -599,10 +580,12 @@ const AdminDashboard = () => {
                             ⏳ Pending Leaves: {systemStats.pendingLeaves || 0}
                           </li>
                           <li>
-                            🚨 Emergency Leaves: {systemStats.emergencyLeaves || 0}
+                            🚨 Emergency Leaves:{" "}
+                            {systemStats.emergencyLeaves || 0}
                           </li>
                           <li>
-                            🎓 Active Students: {systemStats.activeStudents || 0}
+                            🎓 Active Students:{" "}
+                            {systemStats.activeStudents || 0}
                           </li>
                         </ul>
                       </div>
@@ -613,109 +596,137 @@ const AdminDashboard = () => {
             )}
 
             {/* ============================= User Management =========================== */}
-{activeTab === "users" && (
-  <div className="dashboard-card">
-    <div className="card-header">
-      <h2>User Management</h2>
+            {activeTab === "users" && (
+              <div className="user-table-container">
+                <div className="card-header">
+                  <h2>User Management</h2>
 
-      <div className="actions">
-        <button
-          className="btn btn-primary"
-          onClick={() => setShowUserModal(true)}
-        >
-          👤 Add New User
-        </button>
-      </div>
-
-      <div className="filters">
-        <input
-          type="text"
-          placeholder="Search by name, email, or roll number..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
-        />
-
-        <select
-          value={selectedRole}
-          onChange={(e) => setSelectedRole(e.target.value)}
-          className="role-select"
-        >
-          <option value="all">All Roles</option>
-          <option value="student">Student</option>
-          <option value="advisor">Advisor</option>
-          <option value="warden">Warden</option>
-          <option value="parent">Parent</option>
-          <option value="admin">Admin</option>
-        </select>
-
-        <button
-          className="btn btn-outline"
-          onClick={() => exportUsersToCSV(filteredUsers)}
-        >
-          📤 Export CSV
-        </button>
-      </div>
-    </div>
-
-    {loading ? (
-      <div className="loading-state">
-        <div className="loading-spinner"></div>
-        <p>Loading users...</p>
-      </div>
-    ) : (
-      <div className="table-container">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Branch</th>
-              <th>Hostel</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredUsers.length > 0 ? (
-              filteredUsers.map((user) => (
-                <tr key={user.id}>
-                  <td>
-                    {getRoleIcon(user.role)} {user.name}
-                  </td>
-                  <td>{user.email}</td>
-                  <td>{user.role}</td>
-                  <td>{user.branch_name || "-"}</td>
-                  <td>{user.hostel_name || "-"}</td>
-                  <td>
-                    <span className={`status-${user.status === 'active' ? 'green' : user.status === 'inactive' ? 'red' : 'yellow'}`}>
-                      {user.status}
-                    </span>
-                  </td>
-                  <td>
+                  <div className="actions">
                     <button
-                      className="btn btn-small btn-danger"
-                      onClick={() => handleDeleteUser(user.id)}
+                      className="add-user-btn"
+                      onClick={() => setShowUserModal(true)}
                     >
-                      Delete
+                      👤 Add New User
                     </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="7" style={{ textAlign: "center", padding: "2rem" }}>
-                  No users found.
-                </td>
-              </tr>
+                  </div>
+
+                  <div className="user-filters">
+                    <input
+                      type="text"
+                      placeholder="Search by name, email, or roll number..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="search-input"
+                    />
+
+                    <select
+                      value={selectedRole}
+                      onChange={(e) => setSelectedRole(e.target.value)}
+                      className="role-select"
+                    >
+                      <option value="all">All Roles</option>
+                      <option value="student">Student</option>
+                      <option value="advisor">Advisor</option>
+                      <option value="warden">Warden</option>
+                      <option value="parent">Parent</option>
+                      <option value="admin">Admin</option>
+                    </select>
+
+                    <button
+                      className="export-btn"
+                      onClick={() => exportUsersToCSV(filteredUsers)}
+                    >
+                      📤 Export CSV
+                    </button>
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div className="loading-state">
+                    <div className="loading-spinner"></div>
+                    <p>Loading users...</p>
+                  </div>
+                ) : (
+                  <table className="user-table">
+                    <thead>
+                      <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Branch</th>
+                        <th>Hostel</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredUsers.length > 0 ? (
+                        filteredUsers.map((user) => (
+                          <tr key={user.id}>
+                            <td>
+                              <div className="user-info">
+                                <div className="user-name">{user.name}</div>
+                                <div className="user-email">{user.email}</div>
+                                {user.roll_number && (
+                                  <div
+                                    style={{
+                                      fontSize: "0.8rem",
+                                      color: "#666",
+                                      marginTop: "2px",
+                                    }}
+                                  >
+                                    Roll No: {user.roll_number}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td>
+                              <div className="user-role">
+                                {getRoleIcon(user.role)}
+                                {user.role?.charAt(0).toUpperCase() +
+                                  user.role?.slice(1)}
+                              </div>
+                            </td>
+                            <td>{user.branch_name || "–"}</td>
+                            <td>{user.hostel_name || "–"}</td>
+                            <td>
+                              <span
+                                className={`user-status status-${
+                                  user.status || "active"
+                                }`}
+                              >
+                                {user.status?.charAt(0).toUpperCase() +
+                                  user.status?.slice(1) || "Active"}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="action-buttons">
+                                <button
+                                  className="btn-danger"
+                                  onClick={() => handleDeleteUser(user.id)}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan="6"
+                            style={{ textAlign: "center", padding: "3rem" }}
+                          >
+                            <div style={{ color: "#666", fontSize: "1rem" }}>
+                              👥 No users found
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             )}
-          </tbody>
-        </table>
-      </div>
-    )}
-  </div>
-)}
 
             {/* ============================== All Leaves Tab ============================== */}
             {activeTab === "leaves" && (
@@ -724,7 +735,9 @@ const AdminDashboard = () => {
 
                 <div className="leave-filters">
                   <select
-                    onChange={(e) => fetchFilteredLeaves("status", e.target.value)}
+                    onChange={(e) =>
+                      fetchFilteredLeaves("status", e.target.value)
+                    }
                     defaultValue="All"
                   >
                     <option value="All">All Statuses</option>
@@ -732,6 +745,13 @@ const AdminDashboard = () => {
                     <option value="approved">Approved</option>
                     <option value="rejected">Rejected</option>
                   </select>
+
+                  <button
+                    className="export-btn"
+                    onClick={() => exportLeavesToCSV(leaves)}
+                  >
+                    📤 Export to CSV
+                  </button>
                 </div>
 
                 {loading ? (
@@ -751,93 +771,151 @@ const AdminDashboard = () => {
                           <th>Reason</th>
                           <th>Status</th>
                           <th>Proof</th>
-                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {leaves.length > 0 ? (
-                          leaves.map((leave, index) => (
-                            <tr key={index}>
-                              <td>
-                                {leave.student_name} ({leave.student_rollno || "–"})
-                              </td>
-                              <td>{leave.branch_name || "–"}</td>
-                              <td>{leave.hostel_name || "–"}</td>
-                              <td>
-                                {new Date(leave.from_date).toLocaleDateString("en-GB", {
-                                  day: "numeric",
-                                  month: "short",
-                                })}{" "}
-                                -{" "}
-                                {new Date(leave.to_date).toLocaleDateString("en-GB", {
-                                  day: "numeric",
-                                  month: "short",
-                                })}
-                              </td>
-                              <td>{leave.reason || "–"}</td>
-                              <td>
-                                <span
-                                  className={
-                                    leave.status === "approved"
-                                      ? "status-green"
-                                      : leave.status === "pending"
-                                      ? "status-yellow"
-                                      : "status-red"
-                                  }
-                                >
-                                  {leave.status}
-                                </span>
-                              </td>
-                              <td>{leave.proof_submitted ? "Submitted" : "No Proof"}</td>
-                              <td>
-                                <button
-                                  className="btn btn-danger btn-small"
-                                  onClick={() => handleDeleteUser(leave.student_id)}
-                                >
-                                  Delete
-                                </button>
-                              </td>
-                            </tr>
-                          ))
+                          leaves.map((leave, index) => {
+                            // Safe date parsing function
+                            const parseDate = (dateString) => {
+                              if (!dateString) return null;
+                              const date = new Date(dateString);
+                              return isNaN(date.getTime()) ? null : date;
+                            };
+
+                            const fromDate = parseDate(
+                              leave.from_date || leave.start_date
+                            );
+                            const toDate = parseDate(
+                              leave.to_date || leave.end_date
+                            );
+
+                            // Calculate days difference safely
+                            let daysDiff = "–";
+                            if (fromDate && toDate) {
+                              const diffTime = Math.abs(toDate - fromDate);
+                              daysDiff =
+                                Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+                            }
+
+                            return (
+                              <tr key={index}>
+                                <td>
+                                  <strong>{leave.student_name}</strong>
+                                  {leave.student_rollno && (
+                                    <div
+                                      style={{
+                                        fontSize: "0.8rem",
+                                        color: "#666",
+                                        marginTop: "2px",
+                                      }}
+                                    >
+                                      Roll No: {leave.student_rollno}
+                                    </div>
+                                  )}
+                                </td>
+                                <td>{leave.branch_name || "–"}</td>
+                                <td>{leave.hostel_name || "–"}</td>
+                                <td>
+                                  <div style={{ fontWeight: "500" }}>
+                                    {fromDate
+                                      ? fromDate.toLocaleDateString("en-GB", {
+                                          day: "numeric",
+                                          month: "short",
+                                        })
+                                      : "–"}{" "}
+                                    -{" "}
+                                    {toDate
+                                      ? toDate.toLocaleDateString("en-GB", {
+                                          day: "numeric",
+                                          month: "short",
+                                        })
+                                      : "–"}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: "0.8rem",
+                                      color: "#666",
+                                      marginTop: "2px",
+                                    }}
+                                  >
+                                    {daysDiff} {daysDiff === 1 ? "day" : "days"}
+                                  </div>
+                                </td>
+                                <td>
+                                  <div style={{ maxWidth: "200px" }}>
+                                    {leave.reason || "–"}
+                                  </div>
+                                </td>
+                                <td>
+                                  <span
+                                    className={
+                                      leave.status === "approved"
+                                        ? "status-green"
+                                        : leave.status === "pending"
+                                        ? "status-yellow"
+                                        : "status-red"
+                                    }
+                                  >
+                                    {leave.status?.charAt(0).toUpperCase() +
+                                      leave.status?.slice(1)}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span
+                                    className={`proof-badge ${
+                                      leave.proof_submitted ? "" : "no-proof"
+                                    }`}
+                                  >
+                                    {leave.proof_submitted
+                                      ? "📎 Submitted"
+                                      : "No Proof"}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })
                         ) : (
                           <tr>
-                            <td colSpan="8" style={{ textAlign: "center", padding: "1rem" }}>
-                              No leave applications found.
+                            <td
+                              colSpan="7"
+                              style={{ textAlign: "center", padding: "3rem" }}
+                            >
+                              <div style={{ color: "#666", fontSize: "1rem" }}>
+                                📝 No leave applications found
+                              </div>
                             </td>
                           </tr>
                         )}
                       </tbody>
                     </table>
-
-                    <button className="export-btn" onClick={() => exportLeavesToCSV(leaves)}>
-                      📤 Export to CSV
-                    </button>
                   </>
                 )}
               </div>
             )}
-
             {/* ========================== Reports & Analytics ========================== */}
             {activeTab === "reports" && (
-              <div className="dashboard-card">
-                <div className="card-header">
+              <div className="reports-container">
+                <div className="reports-header">
                   <h2>Reports & Analytics</h2>
-
-                  <div className="filters">
+                  <div className="reports-actions">
                     <button className="btn btn-outline" onClick={loadAnalytics}>
                       🔄 Refresh Analytics
                     </button>
-
-                    <button className="btn btn-outline" onClick={handleGenerateReport}>
-                      🧠 Summary
+                    <button
+                      className="btn btn-outline"
+                      onClick={handleGenerateReport}
+                    >
+                      🧠 Generate Summary
                     </button>
                   </div>
                 </div>
 
                 {/* AI Summary Bubble */}
                 {aiSummary && (
-                  <div className="ai-summary-card" style={{ marginBottom: 16 }}>
-                    <b>AI Summary:</b> {aiSummary}
+                  <div className="ai-summary-card">
+                    <b>📊Report Summary</b>
+                    {aiSummary}
                   </div>
                 )}
 
@@ -845,9 +923,17 @@ const AdminDashboard = () => {
                 <section className="analytics-block">
                   <h3>📆 Monthly Leave Statistics</h3>
                   {monthlyStats.length === 0 ? (
-                    <p>No monthly data available.</p>
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "2rem",
+                        color: "#666",
+                      }}
+                    >
+                      No monthly data available
+                    </div>
                   ) : (
-                    <table className="table">
+                    <table className="analytics-table">
                       <thead>
                         <tr>
                           <th>Month</th>
@@ -860,57 +946,31 @@ const AdminDashboard = () => {
                       <tbody>
                         {monthlyStats.map((m) => (
                           <tr key={m.ym}>
-                            <td>{m.ym}</td>
+                            <td>
+                              <strong>{m.ym}</strong>
+                            </td>
                             <td>{m.total}</td>
-                            <td>{m.approved}</td>
-                            <td>{m.rejected}</td>
-                            <td>{m.emergency}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </section>
-
-                {/* Role Distribution */}
-                <section className="analytics-block">
-                  <h3>🧩 Role Distribution</h3>
-                  {roleDistribution.length === 0 ? (
-                    <p>No role data available.</p>
-                  ) : (
-                    <ul className="list-grid">
-                      {roleDistribution.map((r) => (
-                        <li key={r.role} className="pill">
-                          {r.role}: <b>{r.count}</b>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-
-                {/* User Activity */}
-                <section className="analytics-block">
-                  <h3>👤 User Activity Analytics</h3>
-                  <p>
-                    Average approval time:{" "}
-                    <b>{activityAnalytics.avgApprovalHours}</b> hours
-                  </p>
-
-                  {activityAnalytics.mostActiveAdvisors.length === 0 ? (
-                    <p>No advisor activity yet.</p>
-                  ) : (
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>Advisor</th>
-                          <th>Approvals</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {activityAnalytics.mostActiveAdvisors.map((a) => (
-                          <tr key={a.id}>
-                            <td>{a.name}</td>
-                            <td>{a.approvals}</td>
+                            <td>
+                              <span
+                                style={{ color: "#27ae60", fontWeight: "600" }}
+                              >
+                                {m.approved}
+                              </span>
+                            </td>
+                            <td>
+                              <span
+                                style={{ color: "#e74c3c", fontWeight: "600" }}
+                              >
+                                {m.rejected}
+                              </span>
+                            </td>
+                            <td>
+                              <span
+                                style={{ color: "#f39c12", fontWeight: "600" }}
+                              >
+                                {m.emergency}
+                              </span>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -920,12 +980,19 @@ const AdminDashboard = () => {
 
                 {/* Anomaly Detection */}
                 <section className="analytics-block">
-                  <h3>High Leave Frequency</h3>
-
+                  <h3>🚨 High Leave Frequency</h3>
                   {anomalies.length === 0 ? (
-                    <p>No anomalies flagged.</p>
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "2rem",
+                        color: "#666",
+                      }}
+                    >
+                      No anomalies flagged
+                    </div>
                   ) : (
-                    <table className="table">
+                    <table className="analytics-table">
                       <thead>
                         <tr>
                           <th>Student</th>
@@ -935,8 +1002,16 @@ const AdminDashboard = () => {
                       <tbody>
                         {anomalies.map((z) => (
                           <tr key={z.id}>
-                            <td>{z.name}</td>
-                            <td>{z.leaves}</td>
+                            <td>
+                              <strong>{z.name}</strong>
+                            </td>
+                            <td>
+                              <span
+                                style={{ color: "#e74c3c", fontWeight: "600" }}
+                              >
+                                {z.leaves}
+                              </span>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -945,72 +1020,78 @@ const AdminDashboard = () => {
                 </section>
               </div>
             )}
-
           </div>
         </div>
       </div>
 
       {showUserModal && (
-  <div className="modal-overlay">
-    <div className="modal">
-      <h2>Add New User</h2>
-      
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const newUser = {
-          name: formData.get("name"),
-          email: formData.get("email"),
-          phone: formData.get("phone"),
-          role: formData.get("role"),
-          roll_number: formData.get("roll_number"),
-          division: formData.get("division"),
-          branch_name: formData.get("branch_name"),
-          hostel_name: formData.get("hostel_name"),
-          password: formData.get("password"),
-        };
-        handleCreateUser(newUser);
-      }}>
-        <div className="form-grid">
-          <input name="name" placeholder="Full Name *" required />
-          <input name="email" type="email" placeholder="Email Address *" required />
-          <input name="phone" placeholder="Phone Number" />
-          <select name="role" required>
-            <option value="">Select Role *</option>
-            <option value="student">Student</option>
-            <option value="advisor">Advisor</option>
-            <option value="warden">Warden</option>
-            <option value="parent">Parent</option>
-            <option value="admin">Admin</option>
-          </select>
-          <input name="roll_number" placeholder="Roll Number" />
-          <input name="division" placeholder="Division" />
-          <input name="branch_name" placeholder="Branch Name" />
-          <input name="hostel_name" placeholder="Hostel Name" />
-          <input
-            name="password"
-            type="password"
-            placeholder="Password *"
-            required
-          />
-        </div>
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2>Add New User</h2>
 
-        <div className="modal-actions">
-          <button type="submit" className="btn btn-primary">
-            ✅ Create User
-          </button>
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => setShowUserModal(false)}
-          >
-            ❌ Cancel
-          </button>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const newUser = {
+                  name: formData.get("name"),
+                  email: formData.get("email"),
+                  phone: formData.get("phone"),
+                  role: formData.get("role"),
+                  roll_number: formData.get("roll_number"),
+                  division: formData.get("division"),
+                  branch_name: formData.get("branch_name"),
+                  hostel_name: formData.get("hostel_name"),
+                  password: formData.get("password"),
+                };
+                handleCreateUser(newUser);
+              }}
+            >
+              <div className="form-grid">
+                <input name="name" placeholder="Full Name *" required />
+                <input
+                  name="email"
+                  type="email"
+                  placeholder="Email Address *"
+                  required
+                />
+                <input name="phone" placeholder="Phone Number" />
+                <select name="role" required>
+                  <option value="">Select Role *</option>
+                  <option value="student">Student</option>
+                  <option value="advisor">Advisor</option>
+                  <option value="warden">Warden</option>
+                  <option value="parent">Parent</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <input name="roll_number" placeholder="Roll Number" />
+                <input name="division" placeholder="Division" />
+                <input name="branch_name" placeholder="Branch Name" />
+                <input name="hostel_name" placeholder="Hostel Name" />
+                <input
+                  name="password"
+                  type="password"
+                  placeholder="Password *"
+                  required
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button type="submit" className="btn btn-primary">
+                  ✅ Create User
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setShowUserModal(false)}
+                >
+                  ❌ Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </form>
-    </div>
-  </div>
-)}
+      )}
     </div>
   );
 };
