@@ -417,7 +417,7 @@ const AdminDashboard = () => {
 
   /* =============================== Render ================================ */
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-container admin-dashboard">
       {/* ================================ Header ================================ */}
       <header className="dashboard-header">
         <div className="dashboard-brand">

@@ -659,8 +659,8 @@
   font-weight: 600;
   display: inline-block;
 }
-/* ==================== FIX LEAVE TABLE CONTAINER WIDTH ==================== */
-.leave-table-container {
+/* ==================== ADMIN DASHBOARD SPECIFIC FULL WIDTH ==================== */
+.admin-dashboard .leave-table-container {
   width: calc(100% - 4rem) !important;
   max-width: none !important;
   margin: 1.5rem 2rem !important;
@@ -673,13 +673,13 @@
 }
 
 /* Force the table to be full width within the container */
-.leave-table {
+.admin-dashboard .leave-table {
   width: 100% !important;
   table-layout: auto !important;
 }
 
 /* Make sure all dashboard cards have consistent full width */
-.dashboard-card {
+.admin-dashboard .dashboard-card {
   width: calc(100% - 4rem) !important;
   max-width: none !important;
   margin: 0 2rem 2.5rem !important;
@@ -687,18 +687,18 @@
 }
 
 /* Remove any constraints on the main layout */
-.dashboard-content {
+.admin-dashboard .dashboard-content {
   width: 100% !important;
   max-width: none !important;
 }
 
-.dashboard-grid {
+.admin-dashboard .dashboard-grid {
   width: 100% !important;
   max-width: none !important;
   display: block !important;
 }
 
-.dashboard-column.main-content {
+.admin-dashboard .dashboard-column.main-content {
   width: 100% !important;
   max-width: none !important;
   display: block !important;
