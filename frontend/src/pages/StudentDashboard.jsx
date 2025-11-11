@@ -8,7 +8,7 @@ import QRCode from "react-qr-code";
 const StudentDashboard = () => {
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const token = localStorage.getItem("token");

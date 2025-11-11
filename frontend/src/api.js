@@ -71,7 +71,7 @@ export const login = async (credentials) => {
 // ===============================
 
 export const applyLeave = async (token, formData) => {
-  const res = await fetchWithTimeout(`${API_URL}/api/leaves/apply`, {
+  const res = await fetchWithTimeout(`${API_URL}/leave/apply`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
