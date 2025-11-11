@@ -73,7 +73,7 @@ const AdvisorDashboard = () => {
 
   const handleViewProof = (leave) => {
     if (leave.proof_file_path) {
-      const proofUrl = `http://localhost:5000${leave.proof_file_path}`;
+      const proofUrl = `http://localhost:5050${leave.proof_file_path}`;
       setViewingProof({
         leaveId: leave.id,
         studentName: leave.student_name,
