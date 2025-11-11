@@ -168,22 +168,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="cta-section">
-        <div className="cta-content">
-          <h2>Add more details</h2>
-          <p>More information about our site</p>
-          <div className="cta-buttons">
-            <a className="btn btn-primary" href="/signup">
-              Demo Buttons now goes to sign Up
-            </a>
-            <a className="btn btn-outline" href="/signin">
-              Demo Buttons now goes to Sign In
-            </a>
-          </div>
-        </div>
-      </section>
-
       <footer className="footer">
         <div className="footer-content">
           <p>© 2025 Smart Leave & Safety System</p>
