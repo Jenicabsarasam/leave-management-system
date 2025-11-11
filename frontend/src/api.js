@@ -322,14 +322,19 @@ export const searchLogs = async (token, { type = "", q = "", limit = 100 }) => {
   return handleResponse(res);
 };
 
-export const exportLogs = (token) => {
-  const a = document.createElement("a");
-  a.href = `${API_URL}/admin/logs/export`;
-  a.setAttribute("download", "logs.csv");
-  a.setAttribute("target", "_blank");
-  a.rel = "noreferrer";
-  a.click();
+export const exportLogsCSV = async () => {
+  const token = localStorage.getItem("token"); // ✅ get admin token
+
+  const response = await axios.get(`${API_URL}/admin/export-logs`, {
+    headers: {
+      Authorization: `Bearer ${token}`, // ✅ send JWT token
+    },
+    responseType: "blob",
+  });
+
+  return response.data;
 };
+
 
 export const getLogsSummary = async (token) => {
   const res = await fetch(`${API_URL}/admin/logs/summary`, {

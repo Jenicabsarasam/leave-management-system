@@ -37,7 +37,7 @@ router.get("/stats", verifyToken, permit("admin"), getAdminStats);
 
 /* ---------------------- 👥 USER MANAGEMENT ---------------------- */
 router.get("/users", verifyToken, permit("admin"), getAllUsers);
-router.post("/users", verifyToken, permit("admin"), createUser);
+router.post("/users", verifyToken, permit("admin"), createUser);  // ✅ Add User route
 router.put("/users/:id", verifyToken, permit("admin"), updateUser);
 router.delete("/users/:id", verifyToken, permit("admin"), deleteUser);
 router.put("/users/:id/status", verifyToken, permit("admin"), toggleUserStatus);

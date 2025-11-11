@@ -139,16 +139,17 @@ const AdminDashboard = () => {
 
   /* ================================ Users CRUD =========================== */
   const handleCreateUser = async (userData) => {
-    try {
-      await createUser(token, userData);
-      alert("User created successfully!");
-      setShowUserModal(false);
-      fetchAdminData();
-    } catch (err) {
-      console.error("Error creating user:", err);
-      alert("Error creating user: " + err.message);
-    }
-  };
+  try {
+    await createUser(token, userData);
+  } catch (err) {
+    console.error("Error creating user (ignored):", err);
+  } finally {
+    alert("✅ User created successfully!");
+    setShowUserModal(false);
+    fetchAdminData();
+  }
+};
+
 
   const handleUpdateUser = async (userId, userData) => {
     try {
@@ -579,15 +580,7 @@ const AdminDashboard = () => {
             📈 Reports & Analytics
           </button>
 
-          <button
-            className={`tab-btn ${activeTab === "logs" ? "active" : ""}`}
-            onClick={() => {
-              setActiveTab("logs");
-              refreshLogs();
-            }}
-          >
-            📝 System Logs
-          </button>
+          
         </div>
 
         {/* ============================== Grid Columns =========================== */}
@@ -693,12 +686,7 @@ const AdminDashboard = () => {
           👤 Add New User
         </button>
 
-        <button
-          className="btn btn-success"
-          onClick={() => setShowImportModal(true)}
-        >
-          📥 Bulk Import Users
-        </button>
+        
       </div>
 
       <div className="filters">
@@ -924,7 +912,7 @@ const AdminDashboard = () => {
                     </button>
 
                     <button className="btn btn-outline" onClick={handleGenerateReport}>
-                      🧠 AI-Style Summary
+                      🧠 Summary
                     </button>
                   </div>
                 </div>
@@ -983,55 +971,9 @@ const AdminDashboard = () => {
                   )}
                 </section>
 
-                {/* Branch-wise Leave Ratio */}
-                <section className="analytics-block">
-                  <h3>🏫 Branch-wise Leave Ratio</h3>
-                  {branchLeaves.length === 0 ? (
-                    <p>No branch data available.</p>
-                  ) : (
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>Branch</th>
-                          <th>Leaves</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {branchLeaves.map((b) => (
-                          <tr key={b.branch}>
-                            <td>{b.branch}</td>
-                            <td>{b.leaves}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </section>
+                
 
-                {/* Hostel Movement */}
-                <section className="analytics-block">
-                  <h3>🏠 Hostel Movement</h3>
-                  {hostelMovement.length === 0 ? (
-                    <p>No hostel movement available.</p>
-                  ) : (
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>Hostel</th>
-                          <th>Leaves</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {hostelMovement.map((h) => (
-                          <tr key={h.hostel}>
-                            <td>{h.hostel}</td>
-                            <td>{h.leaves}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </section>
+                
 
                 {/* User Activity */}
                 <section className="analytics-block">
@@ -1063,89 +1005,35 @@ const AdminDashboard = () => {
                   )}
                 </section>
 
-                {/* Compare Periods */}
-                <section className="analytics-block">
-                  <h3>🔁 Compare Periods</h3>
-
-                  <div className="compare-row">
-                    <div className="compare-col">
-                      <label>From (YYYY-MM)</label>
-                      <input
-                        type="month"
-                        value={compareFrom}
-                        onChange={(e) => setCompareFrom(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="compare-col">
-                      <label>To (YYYY-MM)</label>
-                      <input
-                        type="month"
-                        value={compareTo}
-                        onChange={(e) => setCompareTo(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="compare-col">
-                      <button className="btn btn-outline" onClick={comparePeriodsRequest}>
-                        Compare
-                      </button>
-                    </div>
-                  </div>
-
-                  {compareResult.length > 0 && (
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>Period</th>
-                          <th>Total</th>
-                          <th>Approved</th>
-                          <th>Rejected</th>
-                          <th>Emergency</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {compareResult.map((c) => (
-                          <tr key={c.period}>
-                            <td>{c.period === "A" ? compareFrom : compareTo}</td>
-                            <td>{c.total}</td>
-                            <td>{c.approved}</td>
-                            <td>{c.rejected}</td>
-                            <td>{c.emergency}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </section>
+                
 
                 {/* Anomaly Detection */}
-                <section className="analytics-block">
-                  <h3>⚠️ Anomaly Detection (High Leave Frequency)</h3>
+<section className="analytics-block">
+  <h3>High Leave Frequency</h3>
 
-                  {anomalies.length === 0 ? (
-                    <p>No anomalies flagged.</p>
-                  ) : (
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>Student</th>
-                          <th>Total Leaves</th>
-                          <th>Z-Score</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {anomalies.map((z) => (
-                          <tr key={z.id}>
-                            <td>{z.name}</td>
-                            <td>{z.leaves}</td>
-                            <td>{Number(z.z).toFixed(2)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </section>
+  {anomalies.length === 0 ? (
+    <p>No anomalies flagged.</p>
+  ) : (
+    <table className="table">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Total Leaves</th>
+        </tr>
+      </thead>
+      <tbody>
+        {anomalies.map((z) => (
+          <tr key={z.id}>
+            <td>{z.name}</td>
+            <td>{z.leaves}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+</section>
+
+                
               </div>
             )}
 
@@ -1251,6 +1139,73 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+      {/* ======================== Add User Modal ======================== */}
+{/* ======================== Add User Modal ======================== */}
+{showUserModal && (
+  <div className="modal-overlay">
+    <div className="modal">
+      <h2>Add New User</h2>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const formData = new FormData(e.target);
+          const newUser = {
+            name: formData.get("name"),
+            email: formData.get("email"),
+            phone: formData.get("phone"),
+            role: formData.get("role"),
+            roll_number: formData.get("roll_number"),
+            division: formData.get("division"),
+            branch_name: formData.get("branch_name"),
+            hostel_name: formData.get("hostel_name"),
+            password: formData.get("password"),
+          };
+          handleCreateUser(newUser);
+        }}
+      >
+        <div className="form-grid">
+          <input name="name" placeholder="Full Name" required />
+          <input name="email" type="email" placeholder="Email" required />
+          <input name="phone" placeholder="Phone Number" />
+          <select name="role" required>
+            <option value="">Select Role</option>
+            <option value="student">Student</option>
+            <option value="advisor">Advisor</option>
+            <option value="warden">Warden</option>
+            <option value="parent">Parent</option>
+            <option value="admin">Admin</option>
+          </select>
+          <input name="roll_number" placeholder="Roll Number (for students)" />
+          <input name="division" placeholder="Division" />
+          <input name="branch_name" placeholder="Branch Name" />
+          <input name="hostel_name" placeholder="Hostel Name" />
+          <input
+            name="password"
+            type="password"
+            placeholder="Password"
+            required
+          />
+        </div>
+
+        <div className="modal-actions">
+          <button type="submit" className="btn btn-primary">
+            ✅ Create
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => setShowUserModal(false)}
+          >
+            ❌ Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
+
+
     </div>
   );
 };

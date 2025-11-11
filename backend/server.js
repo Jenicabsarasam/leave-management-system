@@ -27,6 +27,7 @@ app.use(cors({
 
 
 
+
 app.use(express.json());
 
 // IMPORTANT: Create uploads directory if it doesn't exist
