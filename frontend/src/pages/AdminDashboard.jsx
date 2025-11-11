@@ -778,12 +778,16 @@ const AdminDashboard = () => {
   <h2>All Leave Applications</h2>
 
   <div className="leave-filters">
-    <select>
-      <option>All Statuses</option>
-      <option>Pending</option>
-      <option>Approved</option>
-      <option>Rejected</option>
-    </select>
+    <select
+  onChange={(e) => fetchFilteredLeaves("status", e.target.value)}
+  defaultValue="All"
+>
+  <option value="All">All Statuses</option>
+  <option value="pending">Pending</option>
+  <option value="approved">Approved</option>
+  <option value="rejected">Rejected</option>
+</select>
+
   </div>
 
   <table className="leave-table">
@@ -800,20 +804,65 @@ const AdminDashboard = () => {
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <td>John (123)</td>
-        <td>CSE</td>
-        <td>Nil</td>
-        <td>Nov 9 - Nov 10</td>
-        <td>Holiday</td>
-        <td><span className="status-green">Approved</span></td>
-        <td>No Proof</td>
-        <td><button className="btn btn-danger btn-small">Delete</button></td>
+  {leaves.length > 0 ? (
+    leaves.map((leave, index) => (
+      <tr key={index}>
+        <td>
+          {leave.student_name} ({leave.student_rollno || "–"})
+        </td>
+        <td>{leave.branch_name || "–"}</td>
+        <td>{leave.hostel_name || "–"}</td>
+        <td>
+          {new Date(leave.from_date).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+          })}{" "}
+          -{" "}
+          {new Date(leave.to_date).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+          })}
+        </td>
+        <td>{leave.reason || "–"}</td>
+        <td>
+          <span
+            className={
+              leave.status === "approved"
+                ? "status-green"
+                : leave.status === "pending"
+                ? "status-yellow"
+                : "status-red"
+            }
+          >
+            {leave.status}
+          </span>
+        </td>
+        <td>{leave.proof_submitted ? "Submitted" : "No Proof"}</td>
+        <td>
+          <button
+            className="btn btn-danger btn-small"
+            onClick={() => handleDeleteUser(leave.student_id)}
+          >
+            Delete
+          </button>
+        </td>
       </tr>
-    </tbody>
+    ))
+  ) : (
+    <tr>
+      <td colSpan="8" style={{ textAlign: "center", padding: "1rem" }}>
+        No leave applications found.
+      </td>
+    </tr>
+  )}
+</tbody>
+
   </table>
 
-  <button className="export-btn">📤 Export to CSV</button>
+  <button className="export-btn" onClick={() => exportLeavesToCSV(leaves)}>
+  📤 Export to CSV
+</button>
+
 </div>
 
 
