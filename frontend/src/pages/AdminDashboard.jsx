@@ -9,7 +9,7 @@ import {
   updateUser,
   deleteUser,
   getAllLeaves,
-  getSystemLogs,
+ 
   bulkImportUsers,
 } from "../api";
 
@@ -26,7 +26,7 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [leaves, setLeaves] = useState([]);
   const [systemStats, setSystemStats] = useState({});
-  const [systemLogs, setSystemLogs] = useState([]);
+  
 
   /* ----------------------------- UI Controls ----------------------------- */
   const [selectedUser, setSelectedUser] = useState(null);
@@ -68,18 +68,15 @@ const AdminDashboard = () => {
         statsData,
         usersData,
         leavesData,
-        logsData
       ] = await Promise.all([
         getAdminStats(token),
         getAllUsers(token),
         getAllLeaves(token),
-        getSystemLogs(token),
       ]);
 
       setSystemStats(statsData);
       setUsers(usersData.users || []);
       setLeaves(leavesData.leaves || []);
-      setSystemLogs(logsData.logs || []);
     } catch (err) {
       console.error("Error fetching admin data:", err);
       alert("Error loading admin data");
@@ -953,70 +950,67 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* ======================== Add User Modal ======================== */}
       {showUserModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h2>Add New User</h2>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const newUser = {
-                  name: formData.get("name"),
-                  email: formData.get("email"),
-                  phone: formData.get("phone"),
-                  role: formData.get("role"),
-                  roll_number: formData.get("roll_number"),
-                  division: formData.get("division"),
-                  branch_name: formData.get("branch_name"),
-                  hostel_name: formData.get("hostel_name"),
-                  password: formData.get("password"),
-                };
-                handleCreateUser(newUser);
-              }}
-            >
-              <div className="form-grid">
-                <input name="name" placeholder="Full Name" required />
-                <input name="email" type="email" placeholder="Email" required />
-                <input name="phone" placeholder="Phone Number" />
-                <select name="role" required>
-                  <option value="">Select Role</option>
-                  <option value="student">Student</option>
-                  <option value="advisor">Advisor</option>
-                  <option value="warden">Warden</option>
-                  <option value="parent">Parent</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <input name="roll_number" placeholder="Roll Number (for students)" />
-                <input name="division" placeholder="Division" />
-                <input name="branch_name" placeholder="Branch Name" />
-                <input name="hostel_name" placeholder="Hostel Name" />
-                <input
-                  name="password"
-                  type="password"
-                  placeholder="Password"
-                  required
-                />
-              </div>
-
-              <div className="modal-actions">
-                <button type="submit" className="btn btn-primary">
-                  ✅ Create
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={() => setShowUserModal(false)}
-                >
-                  ❌ Cancel
-                </button>
-              </div>
-            </form>
-          </div>
+  <div className="modal-overlay">
+    <div className="modal">
+      <h2>Add New User</h2>
+      
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const newUser = {
+          name: formData.get("name"),
+          email: formData.get("email"),
+          phone: formData.get("phone"),
+          role: formData.get("role"),
+          roll_number: formData.get("roll_number"),
+          division: formData.get("division"),
+          branch_name: formData.get("branch_name"),
+          hostel_name: formData.get("hostel_name"),
+          password: formData.get("password"),
+        };
+        handleCreateUser(newUser);
+      }}>
+        <div className="form-grid">
+          <input name="name" placeholder="Full Name *" required />
+          <input name="email" type="email" placeholder="Email Address *" required />
+          <input name="phone" placeholder="Phone Number" />
+          <select name="role" required>
+            <option value="">Select Role *</option>
+            <option value="student">Student</option>
+            <option value="advisor">Advisor</option>
+            <option value="warden">Warden</option>
+            <option value="parent">Parent</option>
+            <option value="admin">Admin</option>
+          </select>
+          <input name="roll_number" placeholder="Roll Number" />
+          <input name="division" placeholder="Division" />
+          <input name="branch_name" placeholder="Branch Name" />
+          <input name="hostel_name" placeholder="Hostel Name" />
+          <input
+            name="password"
+            type="password"
+            placeholder="Password *"
+            required
+          />
         </div>
-      )}
+
+        <div className="modal-actions">
+          <button type="submit" className="btn btn-primary">
+            ✅ Create User
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={() => setShowUserModal(false)}
+          >
+            ❌ Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
     </div>
   );
 };

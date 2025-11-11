@@ -273,19 +273,6 @@ export const verifyProof = async (req, res) => {
   }
 };
 
-// ✅ Get system logs
-export const getSystemLogs = async (req, res) => {
-  try {
-    const result = await db.query(`
-      SELECT * FROM system_logs ORDER BY timestamp DESC LIMIT 100
-    `);
-    res.json({ logs: result.rows });
-  } catch (err) {
-    console.error("Error in getSystemLogs:", err);
-    res.json({ logs: [] });
-  }
-};
-
 // ✅ AI-style report
 export const generateReportSummary = async (req, res) => {
   try {
@@ -491,88 +478,3 @@ export const getAnomalousLeaveUsers = async (_req, res) => {
   }
 };
 
-// ========= LOGS (filters, export, AI-ish summary) =========
-export const getSystemLogsFiltered = async (req, res) => {
-  try {
-    const { type, q, limit = 100 } = req.query;
-
-    let where = [];
-    let params = [];
-    let idx = 1;
-
-    if (type) {
-      where.push(`type = $${idx++}`);
-      params.push(type);
-    }
-    if (q) {
-      where.push(`(action ILIKE $${idx} OR user_name ILIKE $${idx})`);
-      params.push(`%${q}%`);
-      idx++;
-    }
-
-    const sql =
-      `SELECT id, action, type, user_name, ip_address, timestamp 
-       FROM system_logs
-       ${where.length ? "WHERE " + where.join(" AND ") : ""}
-       ORDER BY timestamp DESC
-       LIMIT ${Number(limit)}`;
-
-    const r = await db.query(sql, params);
-    res.json({ logs: r.rows });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ msg: "Error fetching logs" });
-  }
-};
-
-export const exportLogsCSV = async (req, res) => {
-  try {
-    const r = await db.query(`
-      SELECT id, action, type, user_name, ip_address, timestamp
-      FROM system_logs
-      ORDER BY timestamp DESC
-      LIMIT 5000;
-    `);
-    const header = "id,action,type,user_name,ip_address,timestamp\n";
-    const rows = r.rows
-      .map((x) =>
-        [
-          x.id,
-          `"${(x.action || "").replace(/"/g, '""')}"`,
-          x.type || "",
-          `"${(x.user_name || "").replace(/"/g, '""')}"`,
-          x.ip_address || "",
-          x.timestamp?.toISOString ? x.timestamp.toISOString() : x.timestamp,
-        ].join(",")
-      )
-      .join("\n");
-
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", "attachment; filename=logs.csv");
-    res.send(header + rows);
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ msg: "Error exporting logs" });
-  }
-};
-
-export const getLogsAISummary = async (_req, res) => {
-  try {
-    const r = await db.query(`
-      SELECT type, COUNT(*)::int AS cnt
-      FROM system_logs
-      GROUP BY type
-      ORDER BY cnt DESC;
-    `);
-    const total = r.rows.reduce((s, x) => s + x.cnt, 0);
-    const parts = r.rows.map((x) => `${x.type || 'general'} (${Math.round((x.cnt / (total || 1)) * 100)}%)`);
-    res.json({
-      total,
-      summary: `Most frequent actions: ${parts.join(", ")}.`,
-      breakdown: r.rows,
-    });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ msg: "Error summarizing logs" });
-  }
-};
