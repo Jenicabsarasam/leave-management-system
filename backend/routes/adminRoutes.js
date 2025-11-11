@@ -29,6 +29,8 @@ import {
 } from "../controllers/adminController.js";
 
 import { verifyToken, permit } from "../middleware/authMiddleware.js";
+import { getAIInsights } from "../controllers/adminController.js";
+
 
 const router = express.Router();
 
@@ -56,6 +58,9 @@ router.get("/analytics/hostels", verifyToken, permit("admin"), getHostelMovement
 router.get("/analytics/activity", verifyToken, permit("admin"), getUserActivityAnalytics);
 router.get("/analytics/compare", verifyToken, permit("admin"), comparePeriods);
 router.get("/analytics/anomalies", verifyToken, permit("admin"), getAnomalousLeaveUsers);
+// 🧠 AI-Powered Leave Insights
+router.get("/ai-insights", verifyToken, permit("admin"), getAIInsights);
+
 
 /* ---------------------- 🧾 LOGS MANAGEMENT ---------------------- */
 router.get("/logs", verifyToken, permit("admin"), getSystemLogs);

@@ -84,7 +84,7 @@ const handleMulterError = (error, req, res, next) => {
 };
 
 // Existing routes
-router.post("/apply", verifyToken, permit("student"), applyLeave);
+router.post("/apply", verifyToken, applyLeave);
 router.get("/my", verifyToken, getLeaves);
 router.post("/:id/approve", verifyToken, permit("parent"), parentApproveLeave);
 router.post("/:id/review", verifyToken, permit("advisor"), advisorReviewLeave);

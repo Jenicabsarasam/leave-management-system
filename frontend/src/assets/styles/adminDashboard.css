@@ -263,13 +263,17 @@
 /* ==================== IMPROVED TABLE STYLING ==================== */
 /* ==================== LEAVE APPLICATION TABLE ==================== */
 .leave-table-container {
-  background: white;
+  background-color: white;
   border-radius: 16px;
-  padding: 2rem;
-  margin: 1.5rem 2rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-  border: 1px solid #f0e8e8;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  margin-top: 20px;
+  width: 90%;
+  max-width: 1200px;  /* 🧩 increase this */
+  margin-left: auto;
+  margin-right: auto;
 }
+
 
 .leave-table-container h2 {
   font-size: 1.3rem;
@@ -390,10 +394,19 @@
     padding: 1rem;
   }
 
-  .dashboard-card {
-    margin: 1rem;
-    padding: 1rem;
-  }
+ .dashboard-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  margin: 20px auto;
+
+  /* 🔥 add or edit these lines */
+  width: 95%;          /* makes the white box stretch wider */
+  max-width: 1400px;   /* optional: limit maximum width */
+}
+
+
 
   .dashboard-tabs {
     margin: 0 1rem 1rem;

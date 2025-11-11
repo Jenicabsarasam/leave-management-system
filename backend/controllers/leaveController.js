@@ -4,35 +4,69 @@ import db from "../config/db.js";
 import fs from 'fs';
 
 // ---------------------- Student applies ----------------------
+// ---------------------- Student applies ----------------------
+// ---------------------- Student applies ----------------------
+// ---------------------- Student applies ----------------------
+import { spawnSync } from "child_process";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 export const applyLeave = async (req, res) => {
   const { reason, startDate, endDate, type } = req.body;
-  if (!reason || !startDate || !endDate)
+
+  if (!reason || !startDate || !endDate) {
     return res.status(400).json({ msg: "All fields required" });
+  }
 
   try {
-    let status = 'pending';
-    
-    // For emergency leaves, skip to warden approval directly
-    if (type === 'emergency') {
-      status = 'emergency_pending'; // New status for emergency leaves
-    }
+    let status = "pending";
+    if (type === "emergency") status = "emergency_pending";
 
-    const result = await db.query(
-      `INSERT INTO leaves(student_id, reason, start_date, end_date, type, status)
-       VALUES($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [req.user.id, reason, startDate, endDate, type || 'normal', status]
-    );
-    
-    const message = type === 'emergency' 
-      ? "Emergency leave applied! It will be processed directly by warden." 
-      : "Leave applied";
-      
-    res.status(201).json({ msg: message, leave: result.rows[0] });
+    // ✅ Step 1: Call Python ML Model
+    const scriptPath = path.join(__dirname, "../ml/predict_reason.py");
+    console.log("🚀 Running Python ML script:", scriptPath);
+    console.log("🧾 Reason input:", reason);
+
+    const result = spawnSync("python3", [scriptPath, reason], { encoding: "utf-8" });
+
+    // ✅ Log Python responses
+    if (result.error) console.error("❌ Python Error:", result.error);
+    if (result.stderr) console.error("🐍 Python stderr:", result.stderr);
+
+    const reasonCategory = (result.stdout || "").trim() || "Unknown";
+    console.log("✅ Predicted reason category:", reasonCategory);
+
+    // ✅ Step 2: Insert with category
+    const insertQuery = `
+      INSERT INTO leaves (student_id, reason, reason_category, start_date, end_date, type, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *;
+    `;
+
+    const inserted = await db.query(insertQuery, [
+      req.user.id,
+      reason,
+      reasonCategory,
+      startDate,
+      endDate,
+      type || "normal",
+      status,
+    ]);
+
+    res.status(201).json({
+      msg: "Leave applied successfully!",
+      leave: inserted.rows[0],
+    });
   } catch (err) {
-    console.error(err);
+    console.error("💥 Error in applyLeave:", err);
     res.status(500).json({ msg: "Server error" });
   }
 };
+
+
 
 // ---------------------- Get leaves for logged-in user ----------------------
 export const getLeaves = async (req, res) => {

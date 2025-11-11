@@ -1,4 +1,51 @@
 import db from "../config/db.js";
+import { spawn } from "child_process"; // 👈 ADDED: To run the Python script
+import path from "path"; // 👈 ADDED: To find the script file
+import { fileURLToPath } from "url"; // 👈 ADDED: To find the script file
+
+// --- Helper function to get __dirname in ES Modules ---
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// --- Helper function to run the ML script ---
+const runPrediction = (reason) => {
+  return new Promise((resolve, reject) => {
+    // Path from /backend/controllers -> /backend/ml/predict_reason.py
+    const scriptPath = path.join(
+      __dirname,
+      "../ml/predict_reason.py"
+    );
+
+    // Use 'python3'. If this fails, try changing to 'python'
+    const pythonProcess = spawn("python3", [scriptPath, reason]);
+
+    let prediction = "";
+    let error = "";
+
+    pythonProcess.stdout.on("data", (data) => {
+      prediction += data.toString().trim();
+    });
+
+    pythonProcess.stderr.on("data", (data) => {
+      error += data.toString();
+    });
+
+    pythonProcess.on("close", (code) => {
+      if (code !== 0 || error) {
+        console.error(`Python script error (code ${code}): ${error}`);
+        // Resolve with null so one error doesn't stop all insights
+        return resolve(null);
+      }
+      resolve(prediction);
+    });
+
+    pythonProcess.on("error", (err) => {
+      console.error(`Failed to spawn python process: ${err.message}`);
+      resolve(null); // Resolve with null on spawn error
+    });
+  });
+};
+
 
 // ✅ Get admin statistics
 export const getAdminStats = async (req, res) => {
@@ -574,5 +621,96 @@ export const getLogsAISummary = async (_req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ msg: "Error summarizing logs" });
+  }
+};
+
+// ==================== 🧠 AI Insights Controller (REVISED) ====================
+export const getAIInsights = async (req, res) => {
+  try {
+    // 1. --- Run ML predictions for uncategorized leaves ---
+    // Find leaves that haven't been categorized yet
+    const uncategorizedLeaves = await db.query(
+      `SELECT id, reason FROM leaves WHERE reason_category IS NULL AND reason IS NOT NULL AND reason != ''`
+    );
+
+    let predictionsMade = 0;
+    // Create an array of promises to run predictions
+    const predictionPromises = uncategorizedLeaves.rows.map(async (leave) => {
+      try {
+        const category = await runPrediction(leave.reason);
+        if (category) {
+          // Update the DB with the new category
+          await db.query(
+            `UPDATE leaves SET reason_category = $1 WHERE id = $2`,
+            [category, leave.id]
+          );
+          predictionsMade++;
+        }
+      } catch (predErr) {
+        console.error(`Failed to predict for leave ${leave.id}: ${predErr.message}`);
+      }
+    });
+
+    // Wait for all predictions to finish
+    await Promise.all(predictionPromises);
+
+    if (predictionsMade > 0) {
+      console.log(`[AI Insights] Categorized ${predictionsMade} new leave reasons.`);
+    }
+
+    // 2. --- Fetch ALL data for charts and table ---
+    // Now that predictions are done, fetch all data
+    // We join with users to get student name for the raw data table
+    const result = await db.query(
+      `SELECT 
+         l.reason, 
+         l.reason_category, 
+         l.created_at, 
+         TO_CHAR(l.created_at, 'YYYY-MM-DD') AS date,
+         u.name as student
+       FROM leaves l
+       LEFT JOIN users u ON l.student_id = u.id
+       ORDER BY l.created_at DESC`
+    );
+    
+    const leavesData = result.rows;
+
+    // 3. --- Aggregate data for response ---
+    const reasonDistribution = {};
+    const monthlyTrends = {};
+
+    leavesData.forEach((r) => {
+      // Group by category for the pie chart
+      const cat = r.reason_category || "Uncategorized";
+      reasonDistribution[cat] = (reasonDistribution[cat] || 0) + 1;
+
+      // Group by month for the line chart
+      const month = new Date(r.created_at).toISOString().slice(0, 7); // "YYYY-MM"
+      monthlyTrends[month] = (monthlyTrends[month] || 0) + 1;
+    });
+
+    // Sort monthly trends by date to make the line chart correct
+    const sortedMonthlyTrends = Object.fromEntries(
+      Object.entries(monthlyTrends).sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+    );
+
+    const summary = `AI Model analyzed ${leavesData.length} total leaves. ${predictionsMade > 0 ? `${predictionsMade} new reasons were categorized.` : 'No new reasons to categorize.'} Top category: ${Object.keys(reasonDistribution)[0] || "N/A"}.`;
+
+    // 4. --- Send response to frontend ---
+    res.json({
+      summary,
+      reasonDistribution,
+      monthlyTrends: sortedMonthlyTrends,
+      // Format rawData to match what AIInsights.jsx expects
+      rawData: leavesData.map(r => ({
+         reason: r.reason,
+         category: r.reason_category || "Uncategorized",
+         date: r.date,
+         student: r.student || "N/A" // Handle leaves with no student attached
+      })),
+    });
+  } catch (err) {
+    console.error("AI Insights error:", err);
+    res.status(500).json({ message: "Failed to load AI insights" });
   }
 };

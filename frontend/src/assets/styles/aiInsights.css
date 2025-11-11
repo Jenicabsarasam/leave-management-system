@@ -1,0 +1,173 @@
+/* * NEW STYLESHEET FOR AI INSIGHTS
+ * Save this as: frontend/src/assets/styles/aiInsights.css
+ */
+
+.ai-insights-container {
+  padding: 2rem;
+  background-color: #f4f7fa; /* Light grey background */
+  min-height: 100vh;
+}
+
+/* --- Header --- */
+.ai-insights-header {
+  margin-bottom: 2rem;
+}
+
+.ai-insights-header h2 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #1a202c;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ai-insights-header p {
+  font-size: 1.1rem;
+  color: #4a5568;
+  margin-top: 0.25rem;
+}
+
+/* --- Main Responsive Grid --- */
+.ai-insights-grid {
+  display: grid;
+  grid-template-columns: 1fr; /* Single column on mobile */
+  gap: 1.5rem;
+}
+
+/* On medium screens and up, use a 2-column grid */
+@media (min-width: 768px) {
+  .ai-insights-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* --- Unified Card Style --- */
+.insight-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  overflow: hidden; /* Ensures padding is respected */
+}
+
+.insight-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-4px);
+}
+
+.insight-card h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* --- Specific Card Layouts --- */
+
+/* Summary Card (Full Width) */
+.ai-summary-card {
+  grid-column: 1 / -1; /* Span full width */
+  background: linear-gradient(135deg, #4F46E5, #3B82F6);
+  color: #ffffff;
+}
+
+.ai-summary-card h3 {
+  color: #ffffff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  padding-bottom: 0.75rem;
+}
+
+.ai-summary-card p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  opacity: 0.95;
+  margin: 0;
+}
+
+/* Chart Cards (Default 1-column span) */
+.chart-card-pie,
+.chart-card-line {
+  /* On mobile, they stack. On desktop, they sit side-by-side */
+}
+
+/* Raw Data Table (Full Width) */
+.raw-data-card {
+  grid-column: 1 / -1; /* Span full width */
+}
+
+/* --- Improved Table Styling --- */
+.data-table-container {
+  width: 100%;
+  overflow-x: auto; /* Allow horizontal scrolling on small screens */
+}
+
+.insight-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.insight-table th,
+.insight-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.insight-table th {
+  background-color: #f8fafd;
+  font-weight: 600;
+  color: #4a5568;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.insight-table tbody tr:hover {
+  background-color: #fdfdfd;
+}
+
+/* Empty table state */
+.empty-table-state {
+  text-align: center;
+  padding: 2rem;
+  color: #718096;
+}
+
+/* --- Loading Spinner --- */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  min-height: 300px;
+  width: 100%;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #e2e8f0;
+  border-top-color: #3B82F6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-container p {
+  font-size: 1.1rem;
+  color: #4a5568;
+  margin-top: 1rem;
+  font-weight: 500;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
