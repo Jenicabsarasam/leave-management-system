@@ -72,8 +72,18 @@ body {
   border-radius: 0 0 80px 0;
 }
 ul, table { margin: 20px auto; width: 90%; }
-table { border-collapse: collapse; }
-table th, table td { border: 1px solid #d20a2b; padding: 10px; font-size: 1rem; }
+/* Apply red-bordered table only outside admin dashboard */
+body:not(.dashboard-container) table {
+  border-collapse: collapse;
+}
+
+body:not(.dashboard-container) table th,
+body:not(.dashboard-container) table td {
+  border: 1px solid #d20a2b;
+  padding: 10px;
+  font-size: 1rem;
+}
+
 .status-box { background: #fff; border: 2px solid #d20a2b; padding: 1em; margin: 1em 0; }
 
 .auth-bg { background: #fceabb; }
