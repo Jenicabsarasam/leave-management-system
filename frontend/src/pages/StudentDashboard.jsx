@@ -8,7 +8,7 @@ import QRCode from "react-qr-code";
 const StudentDashboard = () => {
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const token = localStorage.getItem("token");
@@ -55,6 +55,8 @@ const StudentDashboard = () => {
       startDate: e.target.from.value,
       endDate: e.target.to.value,
       type: e.target.leaveType.value,
+      destination: e.target.destination.value,
+      transport_mode: e.target.transport_mode.value,
     };
 
     if (!validateDates(formData.startDate, formData.endDate)) return;
@@ -224,6 +226,29 @@ const StudentDashboard = () => {
                     <option value="emergency">🚨 Emergency Leave</option>
                   </select>
                 </div>
+                {/* Destination Input */}
+                <div className="form-group">
+                  <label>Destination *</label>
+                  <input
+                    name="destination"
+                    type="text"
+                    required
+                    placeholder="City / Place you’re going to"
+                    className="form-input"
+                  />
+                </div>
+
+                {/* Transport Mode Dropdown */}
+                <div className="form-group">
+                  <label>Transport Mode *</label>
+                  <select name="transport_mode" className="form-input" required>
+                    <option value="">Select a mode</option>
+                    <option value="bus">🚌 Bus</option>
+                    <option value="train">🚆 Train</option>
+                    <option value="flight">✈️ Flight</option>
+                    <option value="car">🚗 Car</option>
+                  </select>
+                </div>
 
                 <button className="btn btn-primary btn-full" type="submit">
                   📨 Submit Request
@@ -265,6 +290,16 @@ const StudentDashboard = () => {
                             📅 <strong>Period:</strong> {formatDate(leave.start_date)} →{" "}
                             {formatDate(leave.end_date)}
                           </p>
+                          <p>
+                            🧭 <strong>Destination:</strong> {leave.destination || "—"}
+                          </p>
+                          <p>
+                            🚗 <strong>Transport Mode:</strong>{" "}
+                            {leave.transport_mode
+                              ? leave.transport_mode.charAt(0).toUpperCase() + leave.transport_mode.slice(1)
+                              : "—"}
+                          </p>
+
                           {/* Show Meeting Info if Scheduled */}
                           {leave.meeting_scheduled && leave.meeting_date && (
                             <p style={{ color: "#007bff", marginTop: "4px" }}>

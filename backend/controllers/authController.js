@@ -7,7 +7,7 @@ const JWT_SECRET = "your_jwt_secret_key"; // later move to .env
 
 // Signup
 export const signup = async (req, res) => {
-  const { name, email, password, role, phone, studentRollNo, branch, division, hostel } = req.body;
+  const { name, email, password, role, branch_id, division, hostel_id, room_no } = req.body;
 
   console.log('🔍 Signup request body:', req.body);
 
@@ -118,11 +118,15 @@ export const signup = async (req, res) => {
 
     // Insert user
     const result = await db.query(
-      `INSERT INTO users(name, email, password, role_id, phone, roll_number, branch_id, division, hostel_id) 
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) 
-       RETURNING id, name, email, roll_number`,
-      [name, email, hashedPassword, roleId, phone, studentRollNo, branchId, divisionValue, hostelId]
+      `INSERT INTO users(
+        name, email, password, role_id, phone, roll_number, 
+        branch_id, division, hostel_id, room_no
+      ) 
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) 
+      RETURNING id, name, email, roll_number, room_no`,
+      [name, email, hashedPassword, roleId, phone, studentRollNo, branchId, divisionValue, hostelId, room_no || null]
     );
+
 
     // ------------------ 🔼 End of insertion logic 🔼 ------------------
 

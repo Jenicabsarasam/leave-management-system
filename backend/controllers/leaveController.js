@@ -5,9 +5,19 @@ import fs from 'fs';
 
 // ---------------------- Student applies ----------------------
 export const applyLeave = async (req, res) => {
-  const { reason, startDate, endDate, type } = req.body;
-  if (!reason || !startDate || !endDate)
+
+  const { reason, startDate, endDate, type, transport_mode, destination } = req.body;
+
+  
+  if (!reason || !startDate || !endDate || !transport_mode || !destination)
     return res.status(400).json({ msg: "All fields required" });
+
+// Validate transport mode
+  const validModes = ['bus', 'train', 'flight', 'car'];
+  if (!validModes.includes(transport_mode.toLowerCase())) {
+      return res.status(400).json({ msg: "Invalid transport mode" });
+  }
+
 
   try {
     let status = 'pending';
@@ -18,10 +28,11 @@ export const applyLeave = async (req, res) => {
     }
 
     const result = await db.query(
-      `INSERT INTO leaves(student_id, reason, start_date, end_date, type, status)
-       VALUES($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [req.user.id, reason, startDate, endDate, type || 'normal', status]
+      `INSERT INTO leaves(student_id, reason, start_date, end_date, type, status, transport_mode, destination)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [req.user.id, reason, startDate, endDate, type || 'normal', status, transport_mode.toLowerCase(), destination]
     );
+
     
     const message = type === 'emergency' 
       ? "Emergency leave applied! It will be processed directly by warden." 
@@ -52,7 +63,9 @@ export const getLeaves = async (req, res) => {
         -- 👇 ADD THESE FIELDS
         l.meeting_scheduled,
         l.meeting_date,
-        l.warden_comments
+        l.warden_comments,
+        l.transport_mode,
+        l.destination
       FROM leaves l
       JOIN users s ON l.student_id = s.id
       LEFT JOIN branches b ON s.branch_id = b.id
