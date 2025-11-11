@@ -409,6 +409,16 @@ const WardenDashboard = () => {
                           ({Math.ceil((new Date(leave.end_date) - new Date(leave.start_date)) / (1000 * 60 * 60 * 24)) + 1} days)
                         </span>
                       </div>
+                      {/* Destination and Transport Info */}
+                      <div className="leave-travel">
+                        <p>🧭 <strong>Destination:</strong> {leave.destination || "—"}</p>
+                        <p>
+                          🚗 <strong>Transport Mode:</strong>{" "}
+                          {leave.transport_mode
+                            ? leave.transport_mode.charAt(0).toUpperCase() + leave.transport_mode.slice(1)
+                            : "—"}
+                        </p>
+                      </div>
 
                       {/* Additional Information */}
                       <div className="leave-meta">
