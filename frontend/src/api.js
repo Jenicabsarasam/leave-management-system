@@ -206,15 +206,26 @@ export const getAllUsers = async (token) => {
 };
 
 export const createUser = async (token, userData) => {
-  const res = await fetchWithTimeout(`${API_URL}/admin/users`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(userData),
-  });
-  return handleResponse(res);
+  try {
+    const res = await fetchWithTimeout(`${API_URL}/admin/users`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(userData),
+    });
+    
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.msg || `HTTP error! status: ${res.status}`);
+    }
+    
+    return await res.json();
+  } catch (error) {
+    console.error('API Error in createUser:', error);
+    throw error; // Re-throw to handle in the component
+  }
 };
 
 export const updateUser = async (token, userId, userData) => {
