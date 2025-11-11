@@ -1,5 +1,6 @@
 // src/pages/StudentDashboard.jsx
 import React, { useEffect, useState } from "react";
+import "../assets/styles/studentDashboard.css";
 import logo from "../assets/college-logo.png";
 import { applyLeave, getLeaves } from "../api";
 import QRCode from "react-qr-code";
@@ -40,12 +41,10 @@ const StudentDashboard = () => {
       alert("Cannot select past dates for leave request");
       return false;
     }
-
     if (endDate < startDate) {
       alert("End date must be after or equal to start date");
       return false;
     }
-
     return true;
   };
 
@@ -88,6 +87,22 @@ const StudentDashboard = () => {
     return true;
   });
 
+  const stats = {
+    total: leaves.length,
+    approved: leaves.filter(
+      (l) => l.status === "warden_approved" || l.status === "completed"
+    ).length,
+    pending: leaves.filter(
+      (l) =>
+        l.status === "pending" ||
+        l.status === "parent_approved" ||
+        l.status === "advisor_approved" ||
+        l.status === "emergency_pending"
+    ).length,
+    rejected: leaves.filter((l) => l.status === "rejected").length,
+    emergency: leaves.filter((l) => l.type === "emergency").length,
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return "Invalid Date";
     try {
@@ -98,265 +113,233 @@ const StudentDashboard = () => {
   };
 
   return (
-    <div
-      style={{
-        fontFamily: "Poppins, sans-serif",
-        backgroundColor: "#fff7f7",
-        minHeight: "100vh",
-        padding: "20px",
-      }}
-    >
+    <div className="dashboard-container">
       {/* Header */}
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderBottom: "2px solid #eee",
-          paddingBottom: "10px",
-          marginBottom: "20px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-          <img src={logo} alt="College Logo" style={{ height: "60px" }} />
-          <div>
-            <h1 style={{ margin: 0, color: "#c81d25" }}>Student Dashboard</h1>
-            <p style={{ margin: 0, color: "#666" }}>
-              Manage your leave requests and track approvals
-            </p>
+      <header className="dashboard-header">
+        <div className="dashboard-brand">
+          <div className="logo-container">
+            <img src={logo} alt="College Logo" />
+          </div>
+          <div className="dashboard-title">
+            <h1>Student Dashboard</h1>
+            <p>Manage your leave requests and track approvals</p>
           </div>
         </div>
-        <nav>
-          <a href="/" style={{ marginRight: "15px", color: "#333" }}>
+        <nav className="dashboard-nav">
+          <a href="/" className="nav-link">
             🏠 Home
           </a>
-          <a href="/signin" style={{ color: "#c81d25" }}>
+          <a href="/signin" className="nav-link logout">
             🚪 Sign Out
           </a>
         </nav>
       </header>
 
-      {/* Two-column layout */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "20px",
-        }}
-      >
-        {/* Left column - Apply Leave */}
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: "10px",
-            padding: "20px",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
-          }}
-        >
-          <h2>Apply for Leave</h2>
-          <form onSubmit={handleSubmit}>
-            <label>Leave Reason *</label>
-            <input
-              name="reason"
-              type="text"
-              required
-              placeholder="Brief reason..."
-              style={inputStyle}
-            />
-
-            <div style={{ display: "flex", gap: "10px" }}>
-              <div style={{ flex: 1 }}>
-                <label>Start Date *</label>
-                <input
-                  name="from"
-                  type="date"
-                  required
-                  min={today}
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  style={inputStyle}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label>End Date *</label>
-                <input
-                  name="to"
-                  type="date"
-                  required
-                  min={startDate || today}
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  disabled={!startDate}
-                  style={inputStyle}
-                />
-              </div>
+      <div className="dashboard-content">
+        {/* Stats Overview */}
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-icon total">📊</div>
+            <div className="stat-info">
+              <div className="stat-number">{stats.total}</div>
+              <div className="stat-label">Total Requests</div>
             </div>
-
-            <label>Leave Type *</label>
-            <select name="leaveType" style={inputStyle}>
-              <option value="normal">📋 Normal Leave</option>
-              <option value="emergency">🚨 Emergency Leave</option>
-            </select>
-
-            <button type="submit" style={buttonStyle}>
-              📨 Submit Request
-            </button>
-          </form>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon approved">✅</div>
+            <div className="stat-info">
+              <div className="stat-number">{stats.approved}</div>
+              <div className="stat-label">Approved</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon pending">⏳</div>
+            <div className="stat-info">
+              <div className="stat-number">{stats.pending}</div>
+              <div className="stat-label">Pending</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon used">🚨</div>
+            <div className="stat-info">
+              <div className="stat-number">{stats.emergency}</div>
+              <div className="stat-label">Emergency</div>
+            </div>
+          </div>
         </div>
 
-        {/* Right column - Leave History */}
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: "10px",
-            padding: "20px",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
-          }}
-        >
-          <h2>Leave History</h2>
-          {loading ? (
-            <p>Loading...</p>
-          ) : filteredLeaves.length === 0 ? (
-            <p>No leave requests yet.</p>
-          ) : (
-            filteredLeaves.map((leave) => (
-              <div
-                key={leave.id}
-                style={{
-                  background: "#fff",
-                  borderRadius: "12px",
-                  padding: "15px 20px",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
-                  marginBottom: "15px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                  }}
-                >
-                  <div>
-                    <p>
-                      🏷️ <strong>Leave Type:</strong>{" "}
-                      {leave.type === "emergency" ? "Emergency" : "Normal"}
-                    </p>
-                    <p>
-                      📝 <strong>Reason:</strong> {leave.reason}
-                    </p>
-                    <p>
-                      📅 <strong>Period:</strong> {formatDate(leave.start_date)} →{" "}
-                      {formatDate(leave.end_date)}
-                    </p>
-                    <p>
-                      🕒 <strong>Applied on:</strong>{" "}
-                      {formatDate(leave.created_at)}
-                    </p>
-                  </div>
-
-                  {/* QR shown only if approved */}
-                  {leave.status === "warden_approved" && (
-                    <div
-                      style={{
-                        textAlign: "center",
-                        background: "#f9fafb",
-                        padding: "10px",
-                        borderRadius: "10px",
-                      }}
-                    >
-                      <QRCode
-                        value={JSON.stringify({
-                          studentName: leave.student_name || "Unknown",
-                          division: leave.division || "N/A",
-                          hostel: leave.hostel_name || "N/A",
-                          startDate: leave.start_date,
-                          endDate: leave.end_date,
-                          status: "Approved by Warden",
-                        })}
-                        size={90}
-                      />
-                      <p style={{ fontSize: "0.8rem", color: "#666" }}>
-                        📱 Scan for details
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Status line */}
-                <div style={{ marginTop: "10px" }}>
-                  {leave.status === "warden_approved" ? (
-                    <span style={statusStyle("#e6f4ea", "#137333")}>
-                      ✅ Status: Approved by Warden
-                    </span>
-                  ) : leave.status === "advisor_approved" ? (
-                    <span style={statusStyle("#fff8e5", "#b45309")}>
-                      📚 Status: Approved by Advisor
-                    </span>
-                  ) : leave.status === "parent_approved" ? (
-                    <span style={statusStyle("#fff8e5", "#b45309")}>
-                      👨‍👩‍👧 Status: Approved by Parent
-                    </span>
-                  ) : leave.status === "rejected" ? (
-                    <span style={statusStyle("#fde7e9", "#b91c1c")}>
-                      ❌ Status: Rejected
-                    </span>
-                  ) : (
-                    <span style={statusStyle("#fff4e5", "#b45309")}>
-                      ⏳ Status: Pending
-                    </span>
-                  )}
-                </div>
-
-                {/* Pending With */}
-                {["pending", "parent_approved", "advisor_approved"].includes(
-                  leave.status
-                ) && (
-                  <p style={{ color: "#b45309", fontWeight: 600, marginTop: 5 }}>
-                    ⏰ <strong>Pending With:</strong>{" "}
-                    {leave.status === "pending"
-                      ? "Parent 👨‍👩‍👧"
-                      : leave.status === "parent_approved"
-                      ? "Advisor 📚"
-                      : "Warden 🏢"}
-                  </p>
-                )}
+        <div className="dashboard-grid">
+          {/* Left column - Apply Leave */}
+          <div className="dashboard-column">
+            <div className="dashboard-card">
+              <div className="card-header">
+                <h2>Apply for Leave</h2>
+                <div className="card-badge new">New Request</div>
               </div>
-            ))
-          )}
+
+              <form onSubmit={handleSubmit} className="leave-form">
+                <div className="form-group">
+                  <label>Leave Reason *</label>
+                  <input
+                    name="reason"
+                    type="text"
+                    required
+                    placeholder="Brief reason for your leave..."
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Start Date *</label>
+                    <input
+                      name="from"
+                      type="date"
+                      required
+                      className="form-input"
+                      min={today}
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>End Date *</label>
+                    <input
+                      name="to"
+                      type="date"
+                      required
+                      className="form-input"
+                      min={startDate || today}
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      disabled={!startDate}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Leave Type *</label>
+                  <select name="leaveType" className="form-input">
+                    <option value="normal">📋 Normal Leave</option>
+                    <option value="emergency">🚨 Emergency Leave</option>
+                  </select>
+                </div>
+
+                <button className="btn btn-primary btn-full" type="submit">
+                  📨 Submit Request
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* Right column - Leave History */}
+          <div className="dashboard-column">
+            <div className="dashboard-card">
+              <div className="card-header">
+                <h2>Leave History</h2>
+              </div>
+
+              {loading ? (
+                <div className="loading-state">
+                  <p>Loading...</p>
+                </div>
+              ) : filteredLeaves.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">📝</div>
+                  <h3>No leave requests</h3>
+                </div>
+              ) : (
+                <div className="leaves-list">
+                  {filteredLeaves.map((leave) => (
+                    <div key={leave.id} className="leave-card">
+                      <div className="leave-header">
+                        <div>
+                          <p>
+                            🏷 <strong>Leave Type:</strong>{" "}
+                            {leave.type === "emergency" ? "Emergency" : "Normal"}
+                          </p>
+                          <p>
+                            📝 <strong>Reason:</strong> {leave.reason}
+                          </p>
+                          <p>
+                            📅 <strong>Period:</strong> {formatDate(leave.start_date)} →{" "}
+                            {formatDate(leave.end_date)}
+                          </p>
+                          <p>
+                            🕒 <strong>Applied on:</strong>{" "}
+                            {formatDate(leave.created_at)}
+                          </p>
+                        </div>
+
+                        {/* QR Code if Approved by Warden */}
+                        {leave.status === "warden_approved" && (
+                          <div className="qr-section">
+                            <QRCode
+                              value={JSON.stringify({
+                                studentName: leave.student_name || "Unknown",
+                                division: leave.division || "N/A",
+                                hostel: leave.hostel_name || "N/A",
+                                startDate: leave.start_date,
+                                endDate: leave.end_date,
+                                status: "Approved by Warden",
+                              })}
+                              size={80}
+                            />
+                            <p style={{ fontSize: "0.8rem", color: "#666" }}>
+                              📱 Scan for details
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Status & Pending Info */}
+                      <div className="leave-meta">
+                        {leave.status === "warden_approved" ? (
+                          <span className="status-badge warden_approved">
+                            ✅ Approved by Warden
+                          </span>
+                        ) : leave.status === "advisor_approved" ? (
+                          <span className="status-badge advisor_approved">
+                            📚 Approved by Advisor
+                          </span>
+                        ) : leave.status === "parent_approved" ? (
+                          <span className="status-badge parent_approved">
+                            👨‍👩‍👧 Approved by Parent
+                          </span>
+                        ) : leave.status === "rejected" ? (
+                          <span className="status-badge rejected">
+                            ❌ Rejected
+                          </span>
+                        ) : (
+                          <span className="status-badge pending">
+                            ⏳ Pending
+                          </span>
+                        )}
+
+                        {/* Pending with */}
+                        {["pending", "parent_approved", "advisor_approved"].includes(
+                          leave.status
+                        ) && (
+                          <span className="meta-item">
+                            ⏰ Pending With:{" "}
+                            {leave.status === "pending"
+                              ? "Parent 👨‍👩‍👧"
+                              : leave.status === "parent_approved"
+                              ? "Advisor 📚"
+                              : "Warden 🏢"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 };
-
-/* Inline styles */
-const inputStyle = {
-  width: "100%",
-  padding: "8px",
-  borderRadius: "6px",
-  border: "1px solid #ccc",
-  marginBottom: "10px",
-};
-
-const buttonStyle = {
-  marginTop: "10px",
-  backgroundColor: "#1a73e8",
-  color: "white",
-  border: "none",
-  padding: "10px",
-  borderRadius: "8px",
-  cursor: "pointer",
-  width: "100%",
-};
-
-const statusStyle = (bg, color) => ({
-  display: "inline-block",
-  padding: "6px 10px",
-  borderRadius: "6px",
-  fontWeight: 600,
-  backgroundColor: bg,
-  color,
-});
 
 export default StudentDashboard;
