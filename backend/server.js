@@ -19,16 +19,14 @@ const app = express();
 // CORS configuration
 
 app.use(cors({
-    origin: (origin, callback) => {
-    if (!origin || origin.startsWith("http://localhost:")) {
-      callback(null, true);
-    } else {
-      callback(new Error("❌ Not allowed by CORS"));
-    }
-  },// 👈 your frontend URL
+  origin: "http://localhost:5173",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  credentials: true                // 👈 if you send cookies or tokens
+  credentials: true
 }));
+
+
+
+
 
 app.use(express.json());
 
