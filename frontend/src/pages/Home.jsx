@@ -65,7 +65,7 @@ const Home = () => {
             <img src={logo} alt="college logo" />
           </div>
           <div className="brand-text">
-            <h1>Smart Leave & Safety System</h1>
+            <h1>Hostel Leave Management System</h1>
             <p className="brand-tagline">Digitalizing Campus Leave Management</p>
           </div>
         </div>
@@ -170,7 +170,7 @@ const Home = () => {
 
       <footer className="footer">
         <div className="footer-content">
-          <p>© 2025 Smart Leave & Safety System</p>
+          <p>© 2025 Hostel Leave Management System</p>
         </div>
       </footer>
     </div>

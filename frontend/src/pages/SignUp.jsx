@@ -94,7 +94,7 @@ const SignUp = () => {
             </div>
             <div className="auth-title">
               <h1>Create Your Account</h1>
-              <p>Join the Smart Leave System community</p>
+              <p>Join the Hostel Leave Management System</p>
             </div>
           </div>
           <nav className="auth-nav">
