@@ -74,24 +74,69 @@ export const getAllUsers = async (req, res) => {
 
 // ✅ Create new user
 export const createUser = async (req, res) => {
-  const { name, email, phone, role, roll_number, division, branch_id, hostel_id, password } = req.body;
   try {
-    if (!name || !email || !role || !password)
+    const {
+      name,
+      email,
+      phone,
+      role,
+      roll_number,
+      division,
+      branch_name,
+      hostel_name,
+      password
+    } = req.body;
+
+    if (!name || !email || !role || !password) {
       return res.status(400).json({ msg: "Name, email, role, and password are required" });
+    }
 
+    // Check duplicate email
     const existing = await db.query("SELECT id FROM users WHERE email=$1", [email]);
-    if (existing.rows.length > 0)
+    if (existing.rows.length > 0) {
       return res.status(400).json({ msg: "User with this email already exists" });
+    }
 
+    // Map role -> role_id
     const roleRes = await db.query("SELECT id FROM roles WHERE name=$1", [role]);
-    if (roleRes.rows.length === 0) return res.status(400).json({ msg: "Invalid role" });
+    if (roleRes.rows.length === 0) {
+      return res.status(400).json({ msg: "Invalid role" });
+    }
     const role_id = roleRes.rows[0].id;
 
+    // Resolve (or create) branch_id from branch_name
+    let branch_id = null;
+    if (branch_name) {
+      const br = await db.query("SELECT id FROM branches WHERE LOWER(name)=LOWER($1)", [branch_name]);
+      if (br.rows.length) {
+        branch_id = br.rows[0].id;
+      } else {
+        const ins = await db.query("INSERT INTO branches (name) VALUES ($1) RETURNING id", [branch_name]);
+        branch_id = ins.rows[0].id;
+      }
+    }
+
+    // Resolve (or create) hostel_id from hostel_name
+    let hostel_id = null;
+    if (hostel_name) {
+      const hr = await db.query("SELECT id FROM hostels WHERE LOWER(name)=LOWER($1)", [hostel_name]);
+      if (hr.rows.length) {
+        hostel_id = hr.rows[0].id;
+      } else {
+        const ins = await db.query("INSERT INTO hostels (name) VALUES ($1) RETURNING id", [hostel_name]);
+        hostel_id = ins.rows[0].id;
+      }
+    }
+
+    // Insert user
     const result = await db.query(
-      `INSERT INTO users (name, email, phone, role_id, roll_number, division, branch_id, hostel_id, password, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'active') RETURNING *`,
+      `INSERT INTO users
+       (name, email, phone, role_id, roll_number, division, branch_id, hostel_id, password, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'active')
+       RETURNING *`,
       [name, email, phone, role_id, roll_number, division, branch_id, hostel_id, password]
     );
+
     res.json({ msg: "User created successfully", user: result.rows[0] });
   } catch (err) {
     console.error("Error in createUser:", err);
@@ -233,6 +278,7 @@ export const generateReportSummary = async (req, res) => {
     res.status(500).json({ msg: "Error generating report" });
   }
 };
+
 // ✅ Toggle user activation
 export const toggleUserStatus = async (req, res) => {
   try {
@@ -254,10 +300,10 @@ export const toggleUserStatus = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
 // ========= REPORTS & ANALYTICS =========
 export const getMonthlyLeaveStats = async (req, res) => {
   try {
-    // group by yyyy-mm
     const q = `
       SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS ym,
              COUNT(*) AS total,
@@ -343,20 +389,13 @@ export const getUserActivityAnalytics = async (_req, res) => {
       LIMIT 10;
     `);
 
-    // average approval time (created_at to first non-pending approval)
-    const approvalTime = await db.query(`
-      SELECT COALESCE(ROUND(AVG(EXTRACT(EPOCH FROM (first_approval - created_at))/3600)::numeric,2),0) AS avg_hours
-      FROM (
-        SELECT l.id, l.created_at,
-               LEAST(
-                 NULLIF(l.parent_approved_at, NULL),
-                 NULLIF(l.advisor_approved_at, NULL),
-                 NULLIF(l.warden_approved_at, NULL)
-               ) AS first_approval
-        FROM leaves l
-      ) x
-      WHERE first_approval IS NOT NULL;
-    `);
+    // ✅ FIXED: removed l.parent_approved_at to match DB schema
+  const approvalTime = await db.query(`
+  SELECT COALESCE(ROUND(AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/3600)::numeric,2),0) AS avg_hours
+  FROM leaves
+  WHERE status IN ('approved','completed');
+`);
+
 
     res.json({
       mostActiveAdvisors: advisors.rows,
@@ -370,7 +409,6 @@ export const getUserActivityAnalytics = async (_req, res) => {
 
 export const comparePeriods = async (req, res) => {
   try {
-    // expects ?from=YYYY-MM-01&to=YYYY-MM-01 (two months)
     const { from, to } = req.query;
     if (!from || !to) return res.status(400).json({ msg: "from and to are required (YYYY-MM-DD)" });
 
@@ -391,7 +429,7 @@ export const comparePeriods = async (req, res) => {
       ORDER BY period;
     `;
     const r = await db.query(q, [from, to]);
-    res.json({ compare: r.rows }); // A vs B
+    res.json({ compare: r.rows });
   } catch (e) {
     console.error(e);
     res.status(500).json({ msg: "Error comparing periods" });
@@ -400,7 +438,6 @@ export const comparePeriods = async (req, res) => {
 
 export const getAnomalousLeaveUsers = async (_req, res) => {
   try {
-    // z-score over total leaves per user (simple anomaly flag)
     const byUser = await db.query(`
       WITH per_user AS (
         SELECT s.id, s.name, COUNT(*)::int AS leaves
@@ -429,7 +466,6 @@ export const getSystemLogsFiltered = async (req, res) => {
   try {
     const { type, q, limit = 100 } = req.query;
 
-    // If your table has columns: id, action, type, user_name, ip_address, timestamp, meta
     let where = [];
     let params = [];
     let idx = 1;
@@ -498,7 +534,6 @@ export const getLogsAISummary = async (_req, res) => {
       GROUP BY type
       ORDER BY cnt DESC;
     `);
-    // simple “AI-style” line:
     const total = r.rows.reduce((s, x) => s + x.cnt, 0);
     const parts = r.rows.map((x) => `${x.type || 'general'} (${Math.round((x.cnt / (total || 1)) * 100)}%)`);
     res.json({
