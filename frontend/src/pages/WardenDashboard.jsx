@@ -548,7 +548,7 @@ const WardenDashboard = () => {
                                     className="btn btn-outline" 
                                     onClick={() => handleDecision(leave.id, "verify")}
                                   >
-                                    🔍 Verify Details
+                                  📅 Schedule Meeting
                                   </button>
                                 </div>
                               </div>
