@@ -13,8 +13,6 @@ import {
   bulkImportUsers,
 } from "../api";
 
-
-
 const API_URL = "http://localhost:5050";
 
 const AdminDashboard = () => {
@@ -56,11 +54,7 @@ const AdminDashboard = () => {
   const [compareResult, setCompareResult] = useState([]);        // [{period:'A'|'B', total, emergency, approved, rejected}]
   const [anomalies, setAnomalies] = useState([]);                // [{ id, name, leaves, z }]
 
-  /* ------------------------------ Logs States ---------------------------- */
-  const [logType, setLogType] = useState("");        // "", "auth", "leave", "user", etc (your backend 'type' values)
-  const [logQuery, setLogQuery] = useState("");      // text search
-  const [logLimit, setLogLimit] = useState(100);     // limit
-  const [logsAISummary, setLogsAISummary] = useState({ total: 0, summary: "", breakdown: [] });
+
 
   /* ------------------------------ Auth Token ----------------------------- */
   const token = localStorage.getItem("token");
@@ -139,17 +133,16 @@ const AdminDashboard = () => {
 
   /* ================================ Users CRUD =========================== */
   const handleCreateUser = async (userData) => {
-  try {
-    await createUser(token, userData);
-  } catch (err) {
-    console.error("Error creating user (ignored):", err);
-  } finally {
-    alert("✅ User created successfully!");
-    setShowUserModal(false);
-    fetchAdminData();
-  }
-};
-
+    try {
+      await createUser(token, userData);
+    } catch (err) {
+      console.error("Error creating user (ignored):", err);
+    } finally {
+      alert("✅ User created successfully!");
+      setShowUserModal(false);
+      fetchAdminData();
+    }
+  };
 
   const handleUpdateUser = async (userId, userData) => {
     try {
@@ -421,52 +414,6 @@ const AdminDashboard = () => {
     }
   };
 
-  /* ============================== System Logs ============================ */
-  const refreshLogs = async () => {
-    try {
-      setLoading(true);
-
-      // If filters/search applied, hit /logs/search
-      if (logType || logQuery || logLimit !== 100) {
-        const params = new URLSearchParams();
-        if (logType) params.append("type", logType);
-        if (logQuery) params.append("q", logQuery);
-        if (logLimit) params.append("limit", String(logLimit));
-
-        const res = await fetch(`${API_URL}/admin/logs/search?` + params.toString(), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const data = await res.json();
-        setSystemLogs(data.logs || []);
-      } else {
-        // fallback to basic logs
-        const res = await fetch(`${API_URL}/admin/logs`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const data = await res.json();
-        setSystemLogs(data.logs || []);
-      }
-
-      // Always refresh AI log summary
-      const sum = await fetch(`${API_URL}/admin/logs/summary`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then((r) => r.json());
-
-      setLogsAISummary(sum || { total: 0, summary: "", breakdown: [] });
-    } catch (e) {
-      console.error("Logs load error:", e);
-      alert("Failed to load logs");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const exportLogs = () => {
-    // just open the CSV endpoint in a new tab to download
-    window.open(`${API_URL}/admin/logs/export`, "_blank");
-  };
 
   /* =============================== Render ================================ */
   return (
@@ -579,8 +526,6 @@ const AdminDashboard = () => {
           >
             📈 Reports & Analytics
           </button>
-
-          
         </div>
 
         {/* ============================== Grid Columns =========================== */}
@@ -602,23 +547,22 @@ const AdminDashboard = () => {
                 ) : (
                   <div className="overview-layout">
                     <div className="overview-left">
-  <h3>📈 System Insights</h3>
+                      <h3>📈 System Insights</h3>
 
-  <button
-    className="btn btn-outline"
-    onClick={handleGenerateReport}
-  >
-    📊 Generate Report
-  </button>
+                      <button
+                        className="btn btn-outline"
+                        onClick={handleGenerateReport}
+                      >
+                        📊 Generate Report
+                      </button>
 
-  {aiSummary && (
-    <div className="ai-summary-card">
-      <b>AI Report Summary:</b><br />
-      {aiSummary}
-    </div>
-  )}
-</div>
-
+                      {aiSummary && (
+                        <div className="ai-summary-card">
+                          <b>AI Report Summary:</b><br />
+                          {aiSummary}
+                        </div>
+                      )}
+                    </div>
 
                     <div className="overview-right">
                       <div className="status-card">
@@ -672,7 +616,6 @@ const AdminDashboard = () => {
             )}
 
             {/* ============================= User Management =========================== */}
-            {/* ============================= User Management =========================== */}
 {activeTab === "users" && (
   <div className="dashboard-card">
     <div className="card-header">
@@ -685,8 +628,6 @@ const AdminDashboard = () => {
         >
           👤 Add New User
         </button>
-
-        
       </div>
 
       <div className="filters">
@@ -726,145 +667,158 @@ const AdminDashboard = () => {
         <p>Loading users...</p>
       </div>
     ) : (
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Branch</th>
-            <th>Hostel</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredUsers.length > 0 ? (
-            filteredUsers.map((user) => (
-              <tr key={user.id}>
-                <td>
-                  {getRoleIcon(user.role)} {user.name}
-                </td>
-                <td>{user.email}</td>
-                <td>{user.role}</td>
-                <td>{user.branch_name || "-"}</td>
-                <td>{user.hostel_name || "-"}</td>
-                <td>{getStatusIcon(user.status)}</td>
-                <td>
-                  <button
-                    className="btn btn-small btn-danger"
-                    onClick={() => handleDeleteUser(user.id)}
-                  >
-                    Delete
-                  </button>
+      <div className="table-container">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Branch</th>
+              <th>Hostel</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredUsers.length > 0 ? (
+              filteredUsers.map((user) => (
+                <tr key={user.id}>
+                  <td>
+                    {getRoleIcon(user.role)} {user.name}
+                  </td>
+                  <td>{user.email}</td>
+                  <td>{user.role}</td>
+                  <td>{user.branch_name || "-"}</td>
+                  <td>{user.hostel_name || "-"}</td>
+                  <td>
+                    <span className={`status-${user.status === 'active' ? 'green' : user.status === 'inactive' ? 'red' : 'yellow'}`}>
+                      {user.status}
+                    </span>
+                  </td>
+                  <td>
+                    <button
+                      className="btn btn-small btn-danger"
+                      onClick={() => handleDeleteUser(user.id)}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="7" style={{ textAlign: "center", padding: "2rem" }}>
+                  No users found.
                 </td>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="7" style={{ textAlign: "center", padding: "20px" }}>
-                No users found.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            )}
+          </tbody>
+        </table>
+      </div>
     )}
   </div>
 )}
 
-            {/* ============================== All Leaves ============================== */}
-            <div className="leave-table-container">
-  <h2>All Leave Applications</h2>
+            {/* ============================== All Leaves Tab ============================== */}
+            {activeTab === "leaves" && (
+              <div className="leave-table-container">
+                <h2>All Leave Applications</h2>
 
-  <div className="leave-filters">
-    <select
-  onChange={(e) => fetchFilteredLeaves("status", e.target.value)}
-  defaultValue="All"
->
-  <option value="All">All Statuses</option>
-  <option value="pending">Pending</option>
-  <option value="approved">Approved</option>
-  <option value="rejected">Rejected</option>
-</select>
+                <div className="leave-filters">
+                  <select
+                    onChange={(e) => fetchFilteredLeaves("status", e.target.value)}
+                    defaultValue="All"
+                  >
+                    <option value="All">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
 
-  </div>
+                {loading ? (
+                  <div className="loading-state">
+                    <div className="loading-spinner"></div>
+                    <p>Loading leaves...</p>
+                  </div>
+                ) : (
+                  <>
+                    <table className="leave-table">
+                      <thead>
+                        <tr>
+                          <th>Student</th>
+                          <th>Branch</th>
+                          <th>Hostel</th>
+                          <th>From - To</th>
+                          <th>Reason</th>
+                          <th>Status</th>
+                          <th>Proof</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {leaves.length > 0 ? (
+                          leaves.map((leave, index) => (
+                            <tr key={index}>
+                              <td>
+                                {leave.student_name} ({leave.student_rollno || "–"})
+                              </td>
+                              <td>{leave.branch_name || "–"}</td>
+                              <td>{leave.hostel_name || "–"}</td>
+                              <td>
+                                {new Date(leave.from_date).toLocaleDateString("en-GB", {
+                                  day: "numeric",
+                                  month: "short",
+                                })}{" "}
+                                -{" "}
+                                {new Date(leave.to_date).toLocaleDateString("en-GB", {
+                                  day: "numeric",
+                                  month: "short",
+                                })}
+                              </td>
+                              <td>{leave.reason || "–"}</td>
+                              <td>
+                                <span
+                                  className={
+                                    leave.status === "approved"
+                                      ? "status-green"
+                                      : leave.status === "pending"
+                                      ? "status-yellow"
+                                      : "status-red"
+                                  }
+                                >
+                                  {leave.status}
+                                </span>
+                              </td>
+                              <td>{leave.proof_submitted ? "Submitted" : "No Proof"}</td>
+                              <td>
+                                <button
+                                  className="btn btn-danger btn-small"
+                                  onClick={() => handleDeleteUser(leave.student_id)}
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="8" style={{ textAlign: "center", padding: "1rem" }}>
+                              No leave applications found.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
 
-  <table className="leave-table">
-    <thead>
-      <tr>
-        <th>Student</th>
-        <th>Branch</th>
-        <th>Hostel</th>
-        <th>From - To</th>
-        <th>Reason</th>
-        <th>Status</th>
-        <th>Proof</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-  {leaves.length > 0 ? (
-    leaves.map((leave, index) => (
-      <tr key={index}>
-        <td>
-          {leave.student_name} ({leave.student_rollno || "–"})
-        </td>
-        <td>{leave.branch_name || "–"}</td>
-        <td>{leave.hostel_name || "–"}</td>
-        <td>
-          {new Date(leave.from_date).toLocaleDateString("en-GB", {
-            day: "numeric",
-            month: "short",
-          })}{" "}
-          -{" "}
-          {new Date(leave.to_date).toLocaleDateString("en-GB", {
-            day: "numeric",
-            month: "short",
-          })}
-        </td>
-        <td>{leave.reason || "–"}</td>
-        <td>
-          <span
-            className={
-              leave.status === "approved"
-                ? "status-green"
-                : leave.status === "pending"
-                ? "status-yellow"
-                : "status-red"
-            }
-          >
-            {leave.status}
-          </span>
-        </td>
-        <td>{leave.proof_submitted ? "Submitted" : "No Proof"}</td>
-        <td>
-          <button
-            className="btn btn-danger btn-small"
-            onClick={() => handleDeleteUser(leave.student_id)}
-          >
-            Delete
-          </button>
-        </td>
-      </tr>
-    ))
-  ) : (
-    <tr>
-      <td colSpan="8" style={{ textAlign: "center", padding: "1rem" }}>
-        No leave applications found.
-      </td>
-    </tr>
-  )}
-</tbody>
-
-  </table>
-
-  <button className="export-btn" onClick={() => exportLeavesToCSV(leaves)}>
-  📤 Export to CSV
-</button>
-
-</div>
-
+                    <button className="export-btn" onClick={() => exportLeavesToCSV(leaves)}>
+                      📤 Export to CSV
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* ========================== Reports & Analytics ========================== */}
             {activeTab === "reports" && (
@@ -937,10 +891,6 @@ const AdminDashboard = () => {
                   )}
                 </section>
 
-                
-
-                
-
                 {/* User Activity */}
                 <section className="analytics-block">
                   <h3>👤 User Activity Analytics</h3>
@@ -971,207 +921,102 @@ const AdminDashboard = () => {
                   )}
                 </section>
 
-                
-
                 {/* Anomaly Detection */}
-<section className="analytics-block">
-  <h3>High Leave Frequency</h3>
+                <section className="analytics-block">
+                  <h3>High Leave Frequency</h3>
 
-  {anomalies.length === 0 ? (
-    <p>No anomalies flagged.</p>
-  ) : (
-    <table className="table">
-      <thead>
-        <tr>
-          <th>Student</th>
-          <th>Total Leaves</th>
-        </tr>
-      </thead>
-      <tbody>
-        {anomalies.map((z) => (
-          <tr key={z.id}>
-            <td>{z.name}</td>
-            <td>{z.leaves}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  )}
-</section>
-
-                
-              </div>
-            )}
-
-            {/* =============================== System Logs ============================ */}
-            {activeTab === "logs" && (
-              <div className="dashboard-card">
-                <div className="card-header">
-                  <h2>System Logs</h2>
-
-                  <div className="filters">
-                    <input
-                      type="text"
-                      placeholder="Search actions/users..."
-                      value={logQuery}
-                      onChange={(e) => setLogQuery(e.target.value)}
-                      className="search-input"
-                    />
-
-                    <select
-                      value={logType}
-                      onChange={(e) => setLogType(e.target.value)}
-                      className="role-select"
-                    >
-                      <option value="">All Types</option>
-                      <option value="auth">Auth</option>
-                      <option value="user">User</option>
-                      <option value="leave">Leave</option>
-                      <option value="admin">Admin</option>
-                      <option value="system">System</option>
-                    </select>
-
-                    <select
-                      value={logLimit}
-                      onChange={(e) => setLogLimit(Number(e.target.value))}
-                      className="role-select"
-                    >
-                      <option value={50}>Last 50</option>
-                      <option value={100}>Last 100</option>
-                      <option value={250}>Last 250</option>
-                      <option value={500}>Last 500</option>
-                    </select>
-
-                    <button className="btn btn-outline" onClick={refreshLogs}>
-                      🔍 Apply
-                    </button>
-
-                    <button className="btn btn-outline" onClick={exportLogs}>
-                      📥 Export CSV
-                    </button>
-                  </div>
-                </div>
-
-                {/* AI Summary for Logs */}
-                {logsAISummary?.summary && (
-                  <div className="ai-summary-card" style={{ marginBottom: 16 }}>
-                    <b>AI Log Summary:</b> {logsAISummary.summary} (Total: {logsAISummary.total})
-                  </div>
-                )}
-
-                {loading ? (
-                  <div className="loading-state">
-                    <div className="loading-spinner"></div>
-                    <p>Loading logs...</p>
-                  </div>
-                ) : (
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Time</th>
-                        <th>Type</th>
-                        <th>Action</th>
-                        <th>User</th>
-                        <th>IP</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {systemLogs.length === 0 ? (
+                  {anomalies.length === 0 ? (
+                    <p>No anomalies flagged.</p>
+                  ) : (
+                    <table className="table">
+                      <thead>
                         <tr>
-                          <td colSpan="5" style={{ textAlign: "center", padding: 16 }}>
-                            No logs found.
-                          </td>
+                          <th>Student</th>
+                          <th>Total Leaves</th>
                         </tr>
-                      ) : (
-                        systemLogs.map((log) => (
-                          <tr key={log.id || `${log.timestamp}-${log.action}`}>
-                            <td>
-                              {log.timestamp
-                                ? new Date(log.timestamp).toLocaleString()
-                                : "-"}
-                            </td>
-                            <td>{log.type || "general"}</td>
-                            <td>{log.action}</td>
-                            <td>{log.user_name || "-"}</td>
-                            <td>{log.ip_address || "-"}</td>
+                      </thead>
+                      <tbody>
+                        {anomalies.map((z) => (
+                          <tr key={z.id}>
+                            <td>{z.name}</td>
+                            <td>{z.leaves}</td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                )}
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </section>
               </div>
             )}
+
           </div>
         </div>
       </div>
+
       {/* ======================== Add User Modal ======================== */}
-{/* ======================== Add User Modal ======================== */}
-{showUserModal && (
-  <div className="modal-overlay">
-    <div className="modal">
-      <h2>Add New User</h2>
+      {showUserModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2>Add New User</h2>
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          const formData = new FormData(e.target);
-          const newUser = {
-            name: formData.get("name"),
-            email: formData.get("email"),
-            phone: formData.get("phone"),
-            role: formData.get("role"),
-            roll_number: formData.get("roll_number"),
-            division: formData.get("division"),
-            branch_name: formData.get("branch_name"),
-            hostel_name: formData.get("hostel_name"),
-            password: formData.get("password"),
-          };
-          handleCreateUser(newUser);
-        }}
-      >
-        <div className="form-grid">
-          <input name="name" placeholder="Full Name" required />
-          <input name="email" type="email" placeholder="Email" required />
-          <input name="phone" placeholder="Phone Number" />
-          <select name="role" required>
-            <option value="">Select Role</option>
-            <option value="student">Student</option>
-            <option value="advisor">Advisor</option>
-            <option value="warden">Warden</option>
-            <option value="parent">Parent</option>
-            <option value="admin">Admin</option>
-          </select>
-          <input name="roll_number" placeholder="Roll Number (for students)" />
-          <input name="division" placeholder="Division" />
-          <input name="branch_name" placeholder="Branch Name" />
-          <input name="hostel_name" placeholder="Hostel Name" />
-          <input
-            name="password"
-            type="password"
-            placeholder="Password"
-            required
-          />
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const newUser = {
+                  name: formData.get("name"),
+                  email: formData.get("email"),
+                  phone: formData.get("phone"),
+                  role: formData.get("role"),
+                  roll_number: formData.get("roll_number"),
+                  division: formData.get("division"),
+                  branch_name: formData.get("branch_name"),
+                  hostel_name: formData.get("hostel_name"),
+                  password: formData.get("password"),
+                };
+                handleCreateUser(newUser);
+              }}
+            >
+              <div className="form-grid">
+                <input name="name" placeholder="Full Name" required />
+                <input name="email" type="email" placeholder="Email" required />
+                <input name="phone" placeholder="Phone Number" />
+                <select name="role" required>
+                  <option value="">Select Role</option>
+                  <option value="student">Student</option>
+                  <option value="advisor">Advisor</option>
+                  <option value="warden">Warden</option>
+                  <option value="parent">Parent</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <input name="roll_number" placeholder="Roll Number (for students)" />
+                <input name="division" placeholder="Division" />
+                <input name="branch_name" placeholder="Branch Name" />
+                <input name="hostel_name" placeholder="Hostel Name" />
+                <input
+                  name="password"
+                  type="password"
+                  placeholder="Password"
+                  required
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button type="submit" className="btn btn-primary">
+                  ✅ Create
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => setShowUserModal(false)}
+                >
+                  ❌ Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-
-        <div className="modal-actions">
-          <button type="submit" className="btn btn-primary">
-            ✅ Create
-          </button>
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => setShowUserModal(false)}
-          >
-            ❌ Cancel
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-)}
-
-
+      )}
     </div>
   );
 };
