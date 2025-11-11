@@ -42,13 +42,20 @@ const retry = async (fn, retries = 2) => {
 // ===============================
 
 export const signup = async (userData) => {
+  const payload = {
+    ...userData,
+    room_no: userData.room_no || null, // ✅ Add room_no (student only)
+  };
+
   const res = await fetchWithTimeout(`${API_URL}/auth/signup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(userData),
+    body: JSON.stringify(payload),
   });
   return handleResponse(res);
 };
+
+
 
 export const login = async (credentials) => {
   const res = await fetchWithTimeout(`${API_URL}/auth/login`, {
@@ -63,17 +70,25 @@ export const login = async (credentials) => {
 // 🏫 LEAVE MANAGEMENT APIs
 // ===============================
 
-export const applyLeave = async (token, leaveData) => {
-  const res = await fetchWithTimeout(`${API_URL}/leave/apply`, {
+export const applyLeave = async (token, formData) => {
+  const res = await fetchWithTimeout(`${API_URL}/api/leaves/apply`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(leaveData),
+    body: JSON.stringify({
+      reason: formData.reason,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      type: formData.type,
+      destination: formData.destination,
+      transport_mode: formData.transport_mode,
+    }),
   });
-  return handleResponse(res);
+  return res.json();
 };
+
 
 export const getLeaves = async (token) => {
   const res = await fetchWithTimeout(`${API_URL}/leave/my`, {

@@ -336,6 +336,18 @@ const ParentDashboard = () => {
                         </span>
                       </div>
 
+                      {/* Destination and Transport Info */}
+                      <div className="leave-travel">
+                        <p>🧭 <strong>Destination:</strong> {leave.destination || "—"}</p>
+                        <p>
+                          🚗 <strong>Transport Mode:</strong>{" "}
+                          {leave.transport_mode
+                            ? leave.transport_mode.charAt(0).toUpperCase() + leave.transport_mode.slice(1)
+                            : "—"}
+                        </p>
+                      </div>
+
+
                       {/* Additional Information */}
                       <div className="leave-meta">
                         <span className="meta-item">

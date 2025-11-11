@@ -70,7 +70,8 @@ const SignUp = () => {
         studentRollNo: formData.studentRollNo,
         branch: formData.branch,
         division: formData.division,
-        hostel: formData.hostel
+        hostel: formData.hostel,
+        room_no: e.target.room_no.value
       };
 
       const response = await signup(userData);
@@ -274,6 +275,17 @@ const SignUp = () => {
                         ))}
                       </select>
                     </div>
+                    <div className="form-group">
+                      <label>Room Number *</label>
+                      <input
+                        type="text"
+                        name="room_no"
+                        required
+                        placeholder="Enter your hostel room number"
+                        className="form-input"
+                      />
+                    </div>
+
                   </>
                 )}
 
