@@ -189,9 +189,24 @@ export const deleteUser = async (req, res) => {
 export const getAllLeaves = async (req, res) => {
   try {
     const { status, branch, hostel } = req.query;
+
     let query = `
-      SELECT l.*, s.name as student_name, s.roll_number as student_rollno, s.division as student_division,
-             b.name as branch_name, h.name as hostel_name, p.name as parent_name, a.name as advisor_name, w.name as warden_name
+      SELECT 
+        l.id,
+        TO_CHAR(l.start_date, 'YYYY-MM-DD') AS from_date,
+        TO_CHAR(l.end_date, 'YYYY-MM-DD') AS to_date,
+        l.reason,
+        l.status,
+        l.proof_submitted,
+        l.proof_verified,
+        s.name AS student_name,
+        s.roll_number AS student_rollno,
+        s.division AS student_division,
+        b.name AS branch_name,
+        h.name AS hostel_name,
+        p.name AS parent_name,
+        a.name AS advisor_name,
+        w.name AS warden_name
       FROM leaves l
       JOIN users s ON l.student_id = s.id
       LEFT JOIN branches b ON s.branch_id = b.id
@@ -201,12 +216,26 @@ export const getAllLeaves = async (req, res) => {
       LEFT JOIN users w ON l.warden_id = w.id
       WHERE 1=1
     `;
+
     const values = [];
-    if (status) { query += ` AND l.status=$${values.length+1}`; values.push(status); }
-    if (branch) { query += ` AND b.name=$${values.length+1}`; values.push(branch); }
-    if (hostel) { query += ` AND h.name=$${values.length+1}`; values.push(hostel); }
+
+    if (status) {
+      query += ` AND l.status = $${values.length + 1}`;
+      values.push(status);
+    }
+
+    if (branch) {
+      query += ` AND b.name = $${values.length + 1}`;
+      values.push(branch);
+    }
+
+    if (hostel) {
+      query += ` AND h.name = $${values.length + 1}`;
+      values.push(hostel);
+    }
 
     query += " ORDER BY l.created_at DESC";
+
     const result = await db.query(query, values);
     res.json({ leaves: result.rows });
   } catch (err) {
@@ -214,6 +243,7 @@ export const getAllLeaves = async (req, res) => {
     res.status(500).json({ msg: "Server error" });
   }
 };
+
 
 // ✅ Approve/Reject leave
 export const updateLeaveStatus = async (req, res) => {
