@@ -265,10 +265,21 @@ const StudentDashboard = () => {
                             📅 <strong>Period:</strong> {formatDate(leave.start_date)} →{" "}
                             {formatDate(leave.end_date)}
                           </p>
-                          <p>
-                            🕒 <strong>Applied on:</strong>{" "}
-                            {formatDate(leave.created_at)}
-                          </p>
+                          {/* Show Meeting Info if Scheduled */}
+                          {leave.meeting_scheduled && leave.meeting_date && (
+                            <p style={{ color: "#007bff", marginTop: "4px" }}>
+                              📅 <strong>Meeting:</strong>{" "}
+                              {new Date(leave.meeting_date).toLocaleString()}
+                            </p>
+                          )}
+
+                          {/* Show Warden Comments if Any */}
+                          {leave.warden_comments && (
+                            <p style={{ fontStyle: "italic", color: "#6c757d", marginTop: "2px" }}>
+                              🗣️ <strong>Warden:</strong> {leave.warden_comments}
+                            </p>
+                          )}
+
                         </div>
 
                         {/* QR Code if Approved by Warden */}

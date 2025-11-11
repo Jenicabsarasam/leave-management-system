@@ -38,14 +38,21 @@ export const applyLeave = async (req, res) => {
 export const getLeaves = async (req, res) => {
   try {
     let query = `
-      SELECT l.*, 
-             s.id as student_id, s.name as student_name, s.roll_number as student_rollno,
-             s.division as student_division,
-             b.name as branch_name,
-             h.name as hostel_name,
-             p.id as parent_id, p.name as parent_name,
-             a.id as advisor_id, a.name as advisor_name,
-             w.id as warden_id, w.name as warden_name
+      SELECT 
+        l.*, 
+        s.id as student_id, 
+        s.name as student_name, 
+        s.roll_number as student_rollno,
+        s.division as student_division,
+        b.name as branch_name,
+        h.name as hostel_name,
+        p.id as parent_id, p.name as parent_name,
+        a.id as advisor_id, a.name as advisor_name,
+        w.id as warden_id, w.name as warden_name,
+        -- 👇 ADD THESE FIELDS
+        l.meeting_scheduled,
+        l.meeting_date,
+        l.warden_comments
       FROM leaves l
       JOIN users s ON l.student_id = s.id
       LEFT JOIN branches b ON s.branch_id = b.id
@@ -70,7 +77,6 @@ export const getLeaves = async (req, res) => {
       )`);
       params = [id];
     } else if (role === "advisor") {
-      // Get advisor's assigned branch and division
       const advisorRes = await db.query(
         `SELECT u.branch_id, u.division, b.name as branch_name 
          FROM users u 
@@ -78,7 +84,6 @@ export const getLeaves = async (req, res) => {
          WHERE u.id = $1`,
         [id]
       );
-      
       if (advisorRes.rows.length > 0) {
         const advisor = advisorRes.rows[0];
         if (advisor.branch_id && advisor.division) {
@@ -86,11 +91,8 @@ export const getLeaves = async (req, res) => {
           params = [advisor.branch_id, advisor.division];
         }
       }
-      
-      // Show leaves that need advisor approval AND emergency leaves for monitoring
       whereConditions.push(`(l.status IN ('parent_approved', 'pending') OR l.type = 'emergency')`);
     } else if (role === "warden") {
-      // Get warden's assigned hostel
       const wardenRes = await db.query(
         `SELECT u.hostel_id, h.name as hostel_name 
          FROM users u 
@@ -98,7 +100,6 @@ export const getLeaves = async (req, res) => {
          WHERE u.id = $1`,
         [id]
       );
-      
       if (wardenRes.rows.length > 0) {
         const warden = wardenRes.rows[0];
         if (warden.hostel_id) {
@@ -106,18 +107,15 @@ export const getLeaves = async (req, res) => {
           params = [warden.hostel_id];
         }
       }
-      
-      // FIXED: Show ALL leaves that need warden attention OR have been processed by warden
       whereConditions.push(`(
         l.status IN ('advisor_approved', 'parent_approved', 'emergency_pending', 'proof_requested', 'meeting_scheduled', 'verified') 
         OR l.type = 'emergency'
         OR l.warden_id = $${params.length + 1}
         OR l.status IN ('warden_approved', 'rejected', 'completed')
       )`);
-      params.push(id); // Add warden's ID to params
+      params.push(id);
     }
 
-    // Add WHERE clause if conditions exist
     if (whereConditions.length > 0) {
       query += ` WHERE ` + whereConditions.join(' AND ');
     }
@@ -213,11 +211,14 @@ export const confirmArrival = async (req, res) => {
     if (leave.arrival_timestamp)
       return res.status(400).json({ msg: "Arrival already confirmed" });
 
-    const timestamp = new Date().toISOString();
     const result = await db.query(
-      `UPDATE leaves SET arrival_timestamp=$1, status='completed' WHERE id=$2 RETURNING *`,
-      [timestamp, leaveId]
+      `UPDATE leaves 
+      SET arrival_timestamp = NOW(), status = 'completed'
+      WHERE id = $1 
+      RETURNING *`,
+      [leaveId]
     );
+
 
     res.json({ 
       msg: "Arrival confirmed successfully", 
@@ -542,7 +543,7 @@ export const uploadProof = async (req, res) => {
       msg: "Proof uploaded successfully", 
       leave: updateResult.rows[0],
       filePath: filePath,
-      fileUrl: `http://localhost:5000${filePath}`
+      fileUrl: `http://localhost:5050${filePath}`
     });
   } catch (err) {
     console.error('💥 Error in uploadProof:', err);
