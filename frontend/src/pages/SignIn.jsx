@@ -85,7 +85,7 @@ const SignIn = () => {
             </div>
             <div className="auth-title">
               <h1>Welcome Back</h1>
-              <p>Sign in to your Smart Leave System account</p>
+              <p>Sign in to your Hostel Leave Management System account</p>
             </div>
           </div>
           <nav className="auth-nav">
@@ -157,9 +157,6 @@ const SignIn = () => {
                     <span className="checkmark"></span>
                     Remember me
                   </label>
-                  <a href="/forgot-password" className="forgot-link">
-                    Forgot password?
-                  </a>
                 </div>
               </div>
             </div>
