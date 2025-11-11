@@ -122,17 +122,25 @@ const AdminDashboard = () => {
   });
 
   /* ================================ Users CRUD =========================== */
-  const handleCreateUser = async (userData) => {
-    try {
-      await createUser(token, userData);
-    } catch (err) {
-      console.error("Error creating user (ignored):", err);
-    } finally {
-      alert("✅ User created successfully!");
-      setShowUserModal(false);
-      fetchAdminData();
-    }
-  };
+ const handleCreateUser = async (userData) => {
+  console.log("Creating user with data:", userData);
+  
+  try {
+    const response = await createUser(token, userData);
+    console.log("User creation response:", response);
+    
+    alert("✅ User created successfully!");
+    setShowUserModal(false);
+    fetchAdminData();
+  } catch (err) {
+    console.error("Error creating user:", err);
+    console.error("Error details:", err.response);
+    
+    // Show specific error message from backend
+    const errorMessage = err.message || "Failed to create user. Please check the console for details.";
+    alert(`❌ Error: ${errorMessage}`);
+  }
+};
 
   const handleUpdateUser = async (userId, userData) => {
     try {
@@ -689,16 +697,6 @@ const AdminDashboard = () => {
                             <td>{user.branch_name || "–"}</td>
                             <td>{user.hostel_name || "–"}</td>
                             <td>
-                              <span
-                                className={`user-status status-${
-                                  user.status || "active"
-                                }`}
-                              >
-                                {user.status?.charAt(0).toUpperCase() +
-                                  user.status?.slice(1) || "Active"}
-                              </span>
-                            </td>
-                            <td>
                               <div className="action-buttons">
                                 <button
                                   className="btn-danger"
@@ -1066,8 +1064,9 @@ const AdminDashboard = () => {
                 </select>
                 <input name="roll_number" placeholder="Roll Number" />
                 <input name="division" placeholder="Division" />
-                <input name="branch_name" placeholder="Branch Name" />
-                <input name="hostel_name" placeholder="Hostel Name" />
+                <input name="branch_id" placeholder="Branch ID" />
+                <input name="hostel_id" placeholder="Hostel ID" />
+
                 <input
                   name="password"
                   type="password"

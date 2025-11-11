@@ -9,9 +9,8 @@ import {
   getAllLeaves,
   updateLeaveStatus,
   verifyProof,
-  getSystemLogs,
   generateReportSummary,
-  toggleUserStatus,
+
 
   // Analytics controllers
   getMonthlyLeaveStats,
@@ -22,10 +21,6 @@ import {
   comparePeriods,
   getAnomalousLeaveUsers,
 
-  // Logs controllers
-  getSystemLogsFiltered,
-  exportLogsCSV,
-  getLogsAISummary,
 } from "../controllers/adminController.js";
 
 import { verifyToken, permit } from "../middleware/authMiddleware.js";
@@ -40,7 +35,7 @@ router.get("/users", verifyToken, permit("admin"), getAllUsers);
 router.post("/users", verifyToken, permit("admin"), createUser);  // ✅ Add User route
 router.put("/users/:id", verifyToken, permit("admin"), updateUser);
 router.delete("/users/:id", verifyToken, permit("admin"), deleteUser);
-router.put("/users/:id/status", verifyToken, permit("admin"), toggleUserStatus);
+
 
 /* ---------------------- 📋 LEAVE MANAGEMENT ---------------------- */
 router.get("/leaves", verifyToken, permit("admin"), getAllLeaves);
@@ -57,10 +52,5 @@ router.get("/analytics/activity", verifyToken, permit("admin"), getUserActivityA
 router.get("/analytics/compare", verifyToken, permit("admin"), comparePeriods);
 router.get("/analytics/anomalies", verifyToken, permit("admin"), getAnomalousLeaveUsers);
 
-/* ---------------------- 🧾 LOGS MANAGEMENT ---------------------- */
-router.get("/logs", verifyToken, permit("admin"), getSystemLogs);
-router.get("/logs/search", verifyToken, permit("admin"), getSystemLogsFiltered);
-router.get("/logs/export", verifyToken, permit("admin"), exportLogsCSV);
-router.get("/logs/summary", verifyToken, permit("admin"), getLogsAISummary);
 
 export default router;
