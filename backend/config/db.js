@@ -3,12 +3,7 @@ import pkg from 'pg';
 const { Pool } = pkg;
 
 const pool = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'leave_management',
-  password: 'Jeni@2004',
-  port: 5432,
-});
+
 
 // Test connection
 pool.on('connect', () => {
