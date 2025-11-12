@@ -323,7 +323,7 @@ const StudentDashboard = () => {
                             <QRCode
                               value={JSON.stringify({
                                 studentName: leave.student_name || "Unknown",
-                                division: leave.division || "N/A",
+                                division: leave.division ,
                                 hostel: leave.hostel_name || "N/A",
                                 startDate: leave.start_date,
                                 endDate: leave.end_date,

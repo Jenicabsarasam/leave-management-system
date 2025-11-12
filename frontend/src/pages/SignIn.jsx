@@ -45,34 +45,44 @@ const SignIn = () => {
     });
   };
 
-  const handleSignIn = async (e) => {
-    e.preventDefault();
-    if (!formData.role) {
-      alert("Please select your role");
-      return;
+ const handleSignIn = async (e) => {
+  e.preventDefault();
+  if (!formData.role) {
+    alert("Please select your role");
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const credentials = {
+      email: formData.email,
+      password: formData.password,
+      role: formData.role
+    };
+
+    const response = await login(credentials);
+
+    // Store token and user
+    localStorage.setItem("token", response.token);
+    localStorage.setItem("user", JSON.stringify(response.user));
+
+    // ✅ Get actual role from backend
+    const actualRole = response.user.role;
+
+    // Optional safety alert
+    if (formData.role !== actualRole) {
+      alert(`You are registered as ${actualRole}, not ${formData.role}`);
     }
 
-    setLoading(true);
-    try {
-      const credentials = {
-        email: formData.email,
-        password: formData.password
-      };
+    // ✅ Navigate based on verified role
+    navigate(dashboardPaths[actualRole]);
+  } catch (error) {
+    alert(error.message || "Login failed. Please check your credentials.");
+  } finally {
+    setLoading(false);
+  }
+};
 
-      const response = await login(credentials);
-      
-      // Store token and user data
-      localStorage.setItem("token", response.token);
-      localStorage.setItem("user", JSON.stringify(response.user));
-      
-      // Navigate to appropriate dashboard
-      navigate(dashboardPaths[formData.role]);
-    } catch (error) {
-      alert(error.message || "Login failed. Please check your credentials.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="auth-container">

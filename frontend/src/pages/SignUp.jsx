@@ -16,7 +16,8 @@ const SignUp = () => {
     studentRollNo: "",
     branch: "",
     division: "",
-    hostel: ""
+    hostel: "",
+    room_no: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -86,42 +87,45 @@ const SignUp = () => {
 
   // ✅ Handle form submit
   const handleSignUp = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (phoneError) {
-      alert("Please correct the phone number before continuing.");
-      return;
-    }
+  if (phoneError) {
+    alert("Please correct the phone number before continuing.");
+    return;
+  }
 
-    if (passwordError) {
-      alert("Please correct the password before continuing.");
-      return;
-    }
+  if (passwordError) {
+    alert("Please correct the password before continuing.");
+    return;
+  }
 
-    setLoading(true);
-    try {
-      const userData = {
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        role: formData.role,
-        phone: formData.phone,
-        studentRollNo: formData.studentRollNo,
-        branch: formData.branch,
-        division: formData.division,
-        hostel: formData.hostel,
-        room_no: e.target.room_no.value
-      };
+  setLoading(true);
+  try {
+    const userData = {
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+      role: formData.role,
+      phone: formData.phone,
+      studentRollNo: formData.studentRollNo,
+      branch: formData.branch,
+      division: formData.division,
+      hostel: formData.hostel,
+      room_no: formData.room_no || null, // ✅ safer
+    };
 
-      const response = await signup(userData);
-      alert(response.msg || "Account created successfully!");
-      navigate("/signin");
-    } catch (error) {
-      alert(error.message || "Signup failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+    console.log("Submitting signup:", userData);
+
+    const response = await signup(userData);
+    alert(response.msg || "Account created successfully!");
+    navigate("/signin");
+  } catch (error) {
+    alert(error.message || "Signup failed");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="auth-container">
